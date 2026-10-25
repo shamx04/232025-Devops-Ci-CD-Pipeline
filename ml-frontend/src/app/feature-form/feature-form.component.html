@@ -1,590 +1,309 @@
-<div class="telemetry-viewport">
-  <!-- Top Mission Control Header -->
-  <header class="hud-header">
-    <div class="hud-branding">
-      <div class="radar-dot-pulse"></div>
+<div class="app-container">
+  <!-- Header -->
+  <header class="main-header">
+    <div class="brand">
+      <div class="brand-icon">🛡️</div>
       <div>
-        <div class="hud-eyebrow">DEFENSE-GRADE TELEMETRY // SECTOR-04</div>
-        <h1 class="hud-title">AEGIS // SATELLITE & NETWORK FLOW INTELLIGENCE</h1>
+        <h1 class="brand-title">Network Traffic AI Inspector</h1>
+        <p class="brand-subtitle">
+          Evaluate whether network traffic is <strong>Safe (Normal)</strong> or a <strong>Cyber Attack</strong> using Machine Learning.
+        </p>
       </div>
     </div>
 
-    <div class="hud-telemetry-bar">
-      <div class="telemetry-item">
-        <span class="telemetry-label">SYS_UTC</span>
-        <span class="telemetry-val mono">{{ systemClock }}</span>
-      </div>
-      <div class="telemetry-item">
-        <span class="telemetry-label">ENGINE</span>
-        <span class="telemetry-val mono text-cyan">RF_BINARY_v1.6</span>
-      </div>
-      <div class="telemetry-item">
-        <span class="telemetry-label">FEATURE_VECTOR</span>
-        <span class="telemetry-val mono">42_DIMENSIONS</span>
-      </div>
-      <div class="telemetry-item mode-toggle" (click)="toggleDemoMode()" title="Toggle Live Flask API vs Client Preview">
-        <span class="telemetry-label">PIPELINE_MODE</span>
-        <span class="mode-pill" [class.mode-live]="!demoMode" [class.mode-sim]="demoMode">
-          <span class="mode-led"></span>
-          {{ demoMode ? 'SIMULATED PREVIEW' : 'LIVE API (:5000)' }}
-        </span>
-      </div>
+    <!-- Mode Badge & Switch -->
+    <div class="mode-wrapper" (click)="toggleMode()" title="Click to toggle between Browser Demo Mode and Local Flask API">
+      <span class="mode-label">Mode:</span>
+      <span class="mode-pill" [class.mode-demo]="demoMode" [class.mode-live]="!demoMode">
+        <span class="mode-dot"></span>
+        {{ demoMode ? 'Browser Demo Mode' : 'Live Flask API (localhost:5000)' }}
+      </span>
     </div>
   </header>
 
-  <!-- Scenario Quick-Fill Bar (Pcap captures) -->
-  <section class="scenario-bar">
-    <span class="scenario-bar-title mono">SCENARIO INGEST:</span>
-    <div class="scenario-buttons">
-      <button type="button" class="scenario-btn" (click)="loadPreset('benignFtp')">
-        <span class="scenario-idx mono">[01]</span>
-        <span class="scenario-name">BENIGN_FTP_SESSION</span>
-        <span class="scenario-tag tag-benign">NORMAL</span>
-      </button>
-      <button type="button" class="scenario-btn" (click)="loadPreset('shellcodeAttack')">
-        <span class="scenario-idx mono">[02]</span>
-        <span class="scenario-name">SHELLCODE_EXPLOIT</span>
-        <span class="scenario-tag tag-threat">ATTACK</span>
-      </button>
-      <button type="button" class="scenario-btn" (click)="loadPreset('dnsFloodAttack')">
-        <span class="scenario-idx mono">[03]</span>
-        <span class="scenario-name">DNS_AMPLIFICATION_DOS</span>
-        <span class="scenario-tag tag-threat">ATTACK</span>
-      </button>
-      <button type="button" class="scenario-btn" (click)="loadPreset('benignHttp')">
-        <span class="scenario-idx mono">[04]</span>
-        <span class="scenario-name">HTTPS_TLS_STREAM</span>
-        <span class="scenario-tag tag-benign">NORMAL</span>
-      </button>
+  <!-- Step 1: Select Scenario Presets -->
+  <section class="section-box">
+    <div class="section-header">
+      <div class="step-badge">1</div>
+      <div>
+        <h2 class="section-title">Select a Traffic Scenario to Test</h2>
+        <p class="section-desc">Click any real-world traffic sample below to test the AI model instantly:</p>
+      </div>
+    </div>
+
+    <div class="scenario-grid">
+      <div 
+        *ngFor="let s of scenarios" 
+        class="scenario-card" 
+        [class.active]="selectedScenarioId === s.id"
+        [class.card-safe]="s.type === 'safe'"
+        [class.card-threat]="s.type === 'threat'"
+        (click)="selectScenario(s)"
+      >
+        <div class="scenario-top">
+          <span class="scenario-emoji">{{ s.icon }}</span>
+          <span class="type-pill" [class.pill-safe]="s.type === 'safe'" [class.pill-threat]="s.type === 'threat'">
+            {{ s.type === 'safe' ? 'Safe Traffic' : 'Cyber Attack' }}
+          </span>
+        </div>
+        <h3 class="scenario-title">{{ s.title }}</h3>
+        <p class="scenario-text">{{ s.summary }}</p>
+      </div>
     </div>
   </section>
 
-  <!-- Main Dual-Column Command Grid -->
-  <main class="console-grid">
-    <!-- Left Column: Packet Inspector & Parameters Form -->
-    <div class="console-pane pane-inspector">
-      <div class="pane-header">
-        <div class="pane-title-group">
-          <span class="pane-prefix mono">&gt;&gt;</span>
-          <h2 class="pane-title">FLOW PARAMETER TELEMETRY</h2>
+  <!-- Dual Grid: Inspection Form & AI Results -->
+  <div class="workspace-grid">
+    <!-- Left Column: Key Parameters & Advanced Knobs -->
+    <section class="section-box form-section">
+      <div class="section-header">
+        <div class="step-badge">2</div>
+        <div>
+          <h2 class="section-title">Connection Parameters</h2>
+          <p class="section-desc">Inspect or customize the flow features before running the prediction:</p>
         </div>
-        <span class="pane-counter mono">42 / 42 INPUT FIELDS VALIDATED</span>
       </div>
 
-      <!-- Category Segmented Tabs -->
-      <nav class="hud-tabs">
-        <button type="button" class="hud-tab" [class.active]="activeTab === 'fundamentals'" (click)="setTab('fundamentals')">
-          <span class="tab-idx mono">01</span> Fundamentals
-        </button>
-        <button type="button" class="hud-tab" [class.active]="activeTab === 'volume'" (click)="setTab('volume')">
-          <span class="tab-idx mono">02</span> Throughput &amp; Rates
-        </button>
-        <button type="button" class="hud-tab" [class.active]="activeTab === 'handshake'" (click)="setTab('handshake')">
-          <span class="tab-idx mono">03</span> TCP / Handshake
-        </button>
-        <button type="button" class="hud-tab" [class.active]="activeTab === 'tracking'" (click)="setTab('tracking')">
-          <span class="tab-idx mono">04</span> Tracking Matrix
-        </button>
-        <button type="button" class="hud-tab" [class.active]="activeTab === 'all'" (click)="setTab('all')">
-          <span class="tab-idx mono">05</span> All Fields (42)
-        </button>
-      </nav>
-
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="telemetry-form">
-        <!-- Tab 01: Protocol & Fundamentals -->
-        <div class="tab-section" *ngIf="activeTab === 'fundamentals' || activeTab === 'all'">
-          <div class="section-label-banner">
-            <span class="section-title mono">01 // PROTOCOL &amp; SESSION STATE</span>
-            <span class="section-hint">Encoded via fitted OrdinalEncoder</span>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <!-- Friendly Essential Knobs -->
+        <div class="friendly-grid">
+          <div class="input-card">
+            <label class="input-label" for="proto">
+              <span>Protocol</span>
+              <span class="help-hint">Network transport rule</span>
+            </label>
+            <select id="proto" formControlName="proto" class="clean-select">
+              <option *ngFor="let p of protocols" [value]="p">{{ p | uppercase }}</option>
+            </select>
           </div>
 
-          <div class="fields-grid grid-3">
-            <div class="field-box">
-              <label class="field-label">
-                <span>PROTOCOL <code class="field-code mono">proto</code></span>
-              </label>
-              <select formControlName="proto" class="hud-input hud-select mono">
-                <option *ngFor="let p of protocols" [value]="p">{{ p }}</option>
-              </select>
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>SERVICE <code class="field-code mono">service</code></span>
-              </label>
-              <select formControlName="service" class="hud-input hud-select mono">
-                <option *ngFor="let s of services" [value]="s">{{ s }}</option>
-              </select>
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>STATE <code class="field-code mono">state</code></span>
-              </label>
-              <select formControlName="state" class="hud-input hud-select mono">
-                <option *ngFor="let st of states" [value]="st">{{ st }}</option>
-              </select>
-            </div>
+          <div class="input-card">
+            <label class="input-label" for="service">
+              <span>Target Service</span>
+              <span class="help-hint">Destination application</span>
+            </label>
+            <select id="service" formControlName="service" class="clean-select">
+              <option *ngFor="let s of services" [value]="s">{{ s === '-' ? 'General / Raw' : (s | uppercase) }}</option>
+            </select>
           </div>
 
-          <div class="fields-grid grid-3">
-            <div class="field-box">
-              <label class="field-label">
-                <span>DURATION <code class="field-code mono">dur</code></span>
-                <span class="field-unit mono">SEC</span>
-              </label>
-              <input type="number" formControlName="dur" step="any" class="hud-input mono">
-            </div>
+          <div class="input-card">
+            <label class="input-label" for="state">
+              <span>Connection State</span>
+              <span class="help-hint">TCP handshake status</span>
+            </label>
+            <select id="state" formControlName="state" class="clean-select">
+              <option *ngFor="let st of states" [value]="st">{{ st }}</option>
+            </select>
+          </div>
 
-            <div class="field-box">
-              <label class="field-label">
-                <span>TRANS DEPTH <code class="field-code mono">trans_depth</code></span>
-              </label>
-              <input type="number" formControlName="trans_depth" class="hud-input mono">
-            </div>
+          <div class="input-card">
+            <label class="input-label" for="dur">
+              <span>Duration (seconds)</span>
+              <span class="help-hint">Length of transmission</span>
+            </label>
+            <input id="dur" type="number" formControlName="dur" step="any" class="clean-input">
+          </div>
 
-            <div class="field-box">
-              <label class="field-label">
-                <span>RESP BODY LEN <code class="field-code mono">response_body_len</code></span>
-                <span class="field-unit mono">BYTES</span>
-              </label>
-              <input type="number" formControlName="response_body_len" class="hud-input mono">
+          <div class="input-card">
+            <label class="input-label" for="rate">
+              <span>Transfer Rate</span>
+              <span class="help-hint">Packets per second</span>
+            </label>
+            <input id="rate" type="number" formControlName="rate" step="any" class="clean-input">
+          </div>
+
+          <div class="input-card">
+            <label class="input-label" for="spkts">
+              <span>Packets Sent / Received</span>
+              <span class="help-hint">Client vs Server packets</span>
+            </label>
+            <div class="dual-inputs">
+              <input type="number" formControlName="spkts" title="Source Packets" placeholder="Src" class="clean-input">
+              <input type="number" formControlName="dpkts" title="Destination Packets" placeholder="Dst" class="clean-input">
             </div>
           </div>
         </div>
 
-        <!-- Tab 02: Throughput, Volume & Rates -->
-        <div class="tab-section" *ngIf="activeTab === 'volume' || activeTab === 'all'">
-          <div class="section-label-banner">
-            <span class="section-title mono">02 // THROUGHPUT &amp; PACKET DYNAMICS</span>
-            <span class="section-hint">High-frequency flow transmission telemetry</span>
-          </div>
-
-          <div class="fields-grid grid-4">
-            <div class="field-box">
-              <label class="field-label">
-                <span>SRC PKTS <code class="field-code mono">spkts</code></span>
-              </label>
-              <input type="number" formControlName="spkts" class="hud-input mono">
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>DST PKTS <code class="field-code mono">dpkts</code></span>
-              </label>
-              <input type="number" formControlName="dpkts" class="hud-input mono">
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>SRC BYTES <code class="field-code mono">sbytes</code></span>
-              </label>
-              <input type="number" formControlName="sbytes" class="hud-input mono">
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>DST BYTES <code class="field-code mono">dbytes</code></span>
-              </label>
-              <input type="number" formControlName="dbytes" class="hud-input mono">
-            </div>
-          </div>
-
-          <div class="fields-grid grid-4">
-            <div class="field-box">
-              <label class="field-label">
-                <span>FLOW RATE <code class="field-code mono">rate</code></span>
-                <span class="field-unit mono">PKT/S</span>
-              </label>
-              <input type="number" formControlName="rate" step="any" class="hud-input mono">
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>SRC LOAD <code class="field-code mono">sload</code></span>
-                <span class="field-unit mono">BPS</span>
-              </label>
-              <input type="number" formControlName="sload" step="any" class="hud-input mono">
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>DST LOAD <code class="field-code mono">dload</code></span>
-                <span class="field-unit mono">BPS</span>
-              </label>
-              <input type="number" formControlName="dload" step="any" class="hud-input mono">
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>SRC LOSS <code class="field-code mono">sloss</code></span>
-              </label>
-              <input type="number" formControlName="sloss" class="hud-input mono">
-            </div>
-          </div>
-
-          <div class="fields-grid grid-3">
-            <div class="field-box">
-              <label class="field-label">
-                <span>DST LOSS <code class="field-code mono">dloss</code></span>
-              </label>
-              <input type="number" formControlName="dloss" class="hud-input mono">
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>SRC MEAN PKT <code class="field-code mono">smean</code></span>
-                <span class="field-unit mono">B</span>
-              </label>
-              <input type="number" formControlName="smean" class="hud-input mono">
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>DST MEAN PKT <code class="field-code mono">dmean</code></span>
-                <span class="field-unit mono">B</span>
-              </label>
-              <input type="number" formControlName="dmean" class="hud-input mono">
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab 03: Timing, Jitter & TCP Handshake -->
-        <div class="tab-section" *ngIf="activeTab === 'handshake' || activeTab === 'all'">
-          <div class="section-label-banner">
-            <span class="section-title mono">03 // TCP HANDSHAKE &amp; JITTER METRICS</span>
-            <span class="section-hint">Latency, window scaling, and inter-arrival timing</span>
-          </div>
-
-          <div class="fields-grid grid-4">
-            <div class="field-box">
-              <label class="field-label">
-                <span>SRC TTL <code class="field-code mono">sttl</code></span>
-              </label>
-              <input type="number" formControlName="sttl" class="hud-input mono">
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>DST TTL <code class="field-code mono">dttl</code></span>
-              </label>
-              <input type="number" formControlName="dttl" class="hud-input mono">
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>SRC IN-PKT <code class="field-code mono">sinpkt</code></span>
-                <span class="field-unit mono">MS</span>
-              </label>
-              <input type="number" formControlName="sinpkt" step="any" class="hud-input mono">
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>DST IN-PKT <code class="field-code mono">dinpkt</code></span>
-                <span class="field-unit mono">MS</span>
-              </label>
-              <input type="number" formControlName="dinpkt" step="any" class="hud-input mono">
-            </div>
-          </div>
-
-          <div class="fields-grid grid-4">
-            <div class="field-box">
-              <label class="field-label">
-                <span>SRC JITTER <code class="field-code mono">sjit</code></span>
-              </label>
-              <input type="number" formControlName="sjit" step="any" class="hud-input mono">
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>DST JITTER <code class="field-code mono">djit</code></span>
-              </label>
-              <input type="number" formControlName="djit" step="any" class="hud-input mono">
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>TCP RTT <code class="field-code mono">tcprtt</code></span>
-                <span class="field-unit mono">S</span>
-              </label>
-              <input type="number" formControlName="tcprtt" step="any" class="hud-input mono">
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>SYN-ACK TIME <code class="field-code mono">synack</code></span>
-                <span class="field-unit mono">S</span>
-              </label>
-              <input type="number" formControlName="synack" step="any" class="hud-input mono">
-            </div>
-          </div>
-
-          <div class="fields-grid grid-4">
-            <div class="field-box">
-              <label class="field-label">
-                <span>ACK-DAT TIME <code class="field-code mono">ackdat</code></span>
-                <span class="field-unit mono">S</span>
-              </label>
-              <input type="number" formControlName="ackdat" step="any" class="hud-input mono">
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>SRC WIN <code class="field-code mono">swin</code></span>
-              </label>
-              <input type="number" formControlName="swin" class="hud-input mono">
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>DST WIN <code class="field-code mono">dwin</code></span>
-              </label>
-              <input type="number" formControlName="dwin" class="hud-input mono">
-            </div>
-
-            <div class="field-box">
-              <label class="field-label">
-                <span>SRC TCP BASE <code class="field-code mono">stcpb</code></span>
-              </label>
-              <input type="number" formControlName="stcpb" class="hud-input mono">
-            </div>
-          </div>
-
-          <div class="fields-grid grid-1">
-            <div class="field-box">
-              <label class="field-label">
-                <span>DST TCP BASE <code class="field-code mono">dtcpb</code></span>
-              </label>
-              <input type="number" formControlName="dtcpb" class="hud-input mono">
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab 04: Connection Tracking Matrix -->
-        <div class="tab-section" *ngIf="activeTab === 'tracking' || activeTab === 'all'">
-          <div class="section-label-banner">
-            <span class="section-title mono">04 // CONNECTION TRACKING &amp; FREQUENCY MATRIX</span>
-            <span class="section-hint">Multi-flow correlation window telemetry</span>
-          </div>
-
-          <div class="fields-grid grid-4">
-            <div class="field-box">
-              <label class="field-label"><span>ct_srv_src</span></label>
-              <input type="number" formControlName="ct_srv_src" class="hud-input mono">
-            </div>
-            <div class="field-box">
-              <label class="field-label"><span>ct_state_ttl</span></label>
-              <input type="number" formControlName="ct_state_ttl" class="hud-input mono">
-            </div>
-            <div class="field-box">
-              <label class="field-label"><span>ct_dst_ltm</span></label>
-              <input type="number" formControlName="ct_dst_ltm" class="hud-input mono">
-            </div>
-            <div class="field-box">
-              <label class="field-label"><span>ct_src_dport_ltm</span></label>
-              <input type="number" formControlName="ct_src_dport_ltm" class="hud-input mono">
-            </div>
-          </div>
-
-          <div class="fields-grid grid-4">
-            <div class="field-box">
-              <label class="field-label"><span>ct_dst_sport_ltm</span></label>
-              <input type="number" formControlName="ct_dst_sport_ltm" class="hud-input mono">
-            </div>
-            <div class="field-box">
-              <label class="field-label"><span>ct_dst_src_ltm</span></label>
-              <input type="number" formControlName="ct_dst_src_ltm" class="hud-input mono">
-            </div>
-            <div class="field-box">
-              <label class="field-label"><span>ct_src_ltm</span></label>
-              <input type="number" formControlName="ct_src_ltm" class="hud-input mono">
-            </div>
-            <div class="field-box">
-              <label class="field-label"><span>ct_srv_dst</span></label>
-              <input type="number" formControlName="ct_srv_dst" class="hud-input mono">
-            </div>
-          </div>
-
-          <div class="fields-grid grid-4">
-            <div class="field-box">
-              <label class="field-label"><span>is_ftp_login</span></label>
-              <input type="number" formControlName="is_ftp_login" min="0" max="1" class="hud-input mono">
-            </div>
-            <div class="field-box">
-              <label class="field-label"><span>ct_ftp_cmd</span></label>
-              <input type="number" formControlName="ct_ftp_cmd" class="hud-input mono">
-            </div>
-            <div class="field-box">
-              <label class="field-label"><span>ct_flw_http_mthd</span></label>
-              <input type="number" formControlName="ct_flw_http_mthd" class="hud-input mono">
-            </div>
-            <div class="field-box">
-              <label class="field-label"><span>is_sm_ips_ports</span></label>
-              <input type="number" formControlName="is_sm_ips_ports" min="0" max="1" class="hud-input mono">
-            </div>
-          </div>
-        </div>
-
-        <!-- Static notice info banner -->
-        <div class="hud-static-alert" *ngIf="isStaticDeployment && !demoMode">
-          <div class="alert-icon mono">[!]</div>
-          <div class="alert-content">
-            <div class="alert-title">GITHUB PAGES HOSTED INSTANCE</div>
-            <div class="alert-body">
-              Static CDN environment cannot host local Python/Flask runtime. Toggle <strong>SIMULATED PREVIEW</strong> in the top header to run client-side model emulation, or connect local Flask on <code>localhost:5000</code>.
-            </div>
-          </div>
-        </div>
-
-        <!-- Form Action Buttons -->
-        <div class="hud-actions-bar">
-          <button type="submit" class="hud-btn-primary" [disabled]="loading || (isStaticDeployment && !demoMode)">
-            <span class="btn-spinner" *ngIf="loading"></span>
-            <span class="btn-icon" *ngIf="!loading">⚡</span>
-            <span>{{ loading ? 'PROCESSING FLOW INFERENCE...' : 'ANALYZE FLOW TELEMETRY' }}</span>
+        <!-- Collapsible Advanced Technical Parameters (All 42 Features) -->
+        <div class="advanced-container">
+          <button type="button" class="advanced-toggle-btn" (click)="toggleAdvanced()">
+            <span>{{ showAdvanced ? '▼ Hide' : '▶ Show' }} All 42 Technical Model Parameters</span>
+            <span class="advanced-badge">Model Schema</span>
           </button>
 
-          <button type="button" class="hud-btn-secondary" (click)="reset()">
-            <span>RESET VECTOR</span>
+          <div class="advanced-panel" *ngIf="showAdvanced">
+            <p class="advanced-intro">
+              These 42 features are extracted from the UNSW-NB15 dataset and fed directly into the Random Forest classifier.
+            </p>
+
+            <div class="adv-group-title">Packet Sizes &amp; Loss Volumes</div>
+            <div class="adv-grid">
+              <label>sbytes (Src Bytes)<input type="number" formControlName="sbytes"></label>
+              <label>dbytes (Dst Bytes)<input type="number" formControlName="dbytes"></label>
+              <label>sload (Src Bits/s)<input type="number" formControlName="sload" step="any"></label>
+              <label>dload (Dst Bits/s)<input type="number" formControlName="dload" step="any"></label>
+              <label>sloss (Src Pkt Loss)<input type="number" formControlName="sloss"></label>
+              <label>dloss (Dst Pkt Loss)<input type="number" formControlName="dloss"></label>
+              <label>smean (Src Avg Pkt Size)<input type="number" formControlName="smean"></label>
+              <label>dmean (Dst Avg Pkt Size)<input type="number" formControlName="dmean"></label>
+            </div>
+
+            <div class="adv-group-title">Timing, Latency &amp; Jitter</div>
+            <div class="adv-grid">
+              <label>sinpkt (Src Inter-pkt ms)<input type="number" formControlName="sinpkt" step="any"></label>
+              <label>dinpkt (Dst Inter-pkt ms)<input type="number" formControlName="dinpkt" step="any"></label>
+              <label>sjit (Src Jitter)<input type="number" formControlName="sjit" step="any"></label>
+              <label>djit (Dst Jitter)<input type="number" formControlName="djit" step="any"></label>
+              <label>tcprtt (TCP Round-Trip s)<input type="number" formControlName="tcprtt" step="any"></label>
+              <label>synack (SYN to SYN-ACK s)<input type="number" formControlName="synack" step="any"></label>
+              <label>ackdat (SYN-ACK to ACK s)<input type="number" formControlName="ackdat" step="any"></label>
+              <label>trans_depth (HTTP Depth)<input type="number" formControlName="trans_depth"></label>
+              <label>response_body_len (Resp Length)<input type="number" formControlName="response_body_len"></label>
+            </div>
+
+            <div class="adv-group-title">TCP Window &amp; TTL Parameters</div>
+            <div class="adv-grid">
+              <label>sttl (Src TTL)<input type="number" formControlName="sttl"></label>
+              <label>dttl (Dst TTL)<input type="number" formControlName="dttl"></label>
+              <label>swin (Src Window Advertised)<input type="number" formControlName="swin"></label>
+              <label>dwin (Dst Window Advertised)<input type="number" formControlName="dwin"></label>
+              <label>stcpb (Src TCP Base Sequence)<input type="number" formControlName="stcpb"></label>
+              <label>dtcpb (Dst TCP Base Sequence)<input type="number" formControlName="dtcpb"></label>
+            </div>
+
+            <div class="adv-group-title">Connection Tracking Matrix (Flow History)</div>
+            <div class="adv-grid">
+              <label>ct_srv_src<input type="number" formControlName="ct_srv_src"></label>
+              <label>ct_state_ttl<input type="number" formControlName="ct_state_ttl"></label>
+              <label>ct_dst_ltm<input type="number" formControlName="ct_dst_ltm"></label>
+              <label>ct_src_dport_ltm<input type="number" formControlName="ct_src_dport_ltm"></label>
+              <label>ct_dst_sport_ltm<input type="number" formControlName="ct_dst_sport_ltm"></label>
+              <label>ct_dst_src_ltm<input type="number" formControlName="ct_dst_src_ltm"></label>
+              <label>is_ftp_login<input type="number" formControlName="is_ftp_login" min="0" max="1"></label>
+              <label>ct_ftp_cmd<input type="number" formControlName="ct_ftp_cmd"></label>
+              <label>ct_flw_http_mthd<input type="number" formControlName="ct_flw_http_mthd"></label>
+              <label>ct_src_ltm<input type="number" formControlName="ct_src_ltm"></label>
+              <label>ct_srv_dst<input type="number" formControlName="ct_srv_dst"></label>
+              <label>is_sm_ips_ports<input type="number" formControlName="is_sm_ips_ports" min="0" max="1"></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="form-actions">
+          <button type="submit" class="analyze-btn" [disabled]="loading">
+            <span class="btn-spinner" *ngIf="loading"></span>
+            <span>{{ loading ? 'Running AI Inference...' : 'Analyze Traffic Flow' }}</span>
+          </button>
+
+          <button type="button" class="reset-btn" (click)="reset()">
+            Reset Values
           </button>
         </div>
       </form>
-    </div>
+    </section>
 
-    <!-- Right Column: Real-Time Threat Assessment & Risk Telemetry Monitor -->
-    <div class="console-pane pane-monitor">
-      <div class="pane-header">
-        <div class="pane-title-group">
-          <span class="pane-prefix mono">&gt;&gt;</span>
-          <h2 class="pane-title">TACTICAL THREAT ASSESSMENT</h2>
+    <!-- Right Column: AI Analysis Result -->
+    <section class="section-box result-section">
+      <div class="section-header">
+        <div class="step-badge">3</div>
+        <div>
+          <h2 class="section-title">AI Prediction Result</h2>
+          <p class="section-desc">Outcome evaluated by the Random Forest classifier:</p>
         </div>
-        <span class="hud-badge-status" [class.badge-live]="!demoMode" [class.badge-sim]="demoMode">
-          {{ demoMode ? 'SIMULATOR ACTIVE' : 'LIVE API ACTIVE' }}
-        </span>
       </div>
 
-      <!-- Threat Result Verdict Display -->
-      <div class="verdict-container" *ngIf="result" [class.verdict-attack]="result.label === 'Attack'" [class.verdict-normal]="result.label === 'Normal'">
-        <div class="verdict-header">
-          <div class="verdict-indicator-light"></div>
-          <span class="verdict-kicker mono">
-            {{ result.label === 'Attack' ? 'CRITICAL ANOMALY DETECTED' : 'FLOW REPUTATION CLEAN' }}
-          </span>
-          <span class="verdict-id mono">CLASS: {{ result.prediction }}</span>
+      <!-- Verdict Banner Card -->
+      <div *ngIf="result" class="verdict-card" [class.verdict-safe]="result.label === 'Normal'" [class.verdict-threat]="result.label === 'Attack'">
+        <div class="verdict-icon">
+          {{ result.label === 'Normal' ? '✅' : '🚨' }}
         </div>
 
-        <div class="verdict-headline">
-          <div class="verdict-symbol">{{ result.label === 'Attack' ? '🚨' : '🛡️' }}</div>
-          <div class="verdict-text-block">
-            <h3 class="verdict-label">{{ result.label === 'Attack' ? 'MALICIOUS ATTACK' : 'BENIGN TRAFFIC' }}</h3>
-            <p class="verdict-subtext">
-              {{ result.label === 'Attack' ? 'Packet vector triggers high-risk anomalous signature profile.' : 'Flow conforms to baseline benign transmission profile.' }}
-            </p>
+        <div class="verdict-info">
+          <div class="verdict-badge">
+            {{ result.label === 'Normal' ? 'SAFE TRAFFIC' : 'CYBER THREAT DETECTED' }}
           </div>
+          <h3 class="verdict-heading">
+            {{ result.label === 'Normal' ? 'Normal Network Flow' : 'Malicious Attack Pattern' }}
+          </h3>
+          <p class="verdict-explanation">
+            {{ result.label === 'Normal' 
+                ? 'This transmission matches baseline normal internet traffic. No malicious signatures or rate anomalies were detected.' 
+                : 'Warning: This transmission exhibits anomalous transfer rates or packet characteristics matching known cyber attack vectors.' 
+            }}
+          </p>
         </div>
 
-        <!-- Probability Distribution Bar -->
-        <div class="prob-distribution-card">
-          <div class="prob-labels-row">
-            <span class="prob-label normal mono">
-              BENIGN: {{ (result.probabilities.Normal * 100) | number:'1.1-2' }}%
+        <!-- Visual Probability Breakdown Bar -->
+        <div class="confidence-container">
+          <div class="confidence-header">
+            <span>Model Confidence Breakdown:</span>
+          </div>
+
+          <div class="progress-bar-wrap">
+            <div 
+              class="bar-segment safe-bar" 
+              [style.width.%]="result.probabilities.Normal * 100"
+              [title]="'Normal: ' + (result.probabilities.Normal * 100 | number:'1.0-0') + '%'"
+            ></div>
+            <div 
+              class="bar-segment threat-bar" 
+              [style.width.%]="result.probabilities.Attack * 100"
+              [title]="'Attack: ' + (result.probabilities.Attack * 100 | number:'1.0-0') + '%'"
+            ></div>
+          </div>
+
+          <div class="confidence-legend">
+            <span class="legend-item safe">
+              <span class="legend-dot dot-safe"></span>
+              Normal: <strong>{{ (result.probabilities.Normal * 100) | number:'1.0-1' }}%</strong>
             </span>
-            <span class="prob-label attack mono">
-              ATTACK: {{ (result.probabilities.Attack * 100) | number:'1.1-2' }}%
+            <span class="legend-item threat">
+              <span class="legend-dot dot-threat"></span>
+              Attack: <strong>{{ (result.probabilities.Attack * 100) | number:'1.0-1' }}%</strong>
             </span>
           </div>
-
-          <div class="prob-meter-track">
-            <div class="prob-fill normal" [style.width.%]="result.probabilities.Normal * 100"></div>
-            <div class="prob-fill attack" [style.width.%]="result.probabilities.Attack * 100"></div>
-          </div>
         </div>
 
-        <!-- Telemetry Signature Breakdown Grid -->
-        <div class="telemetry-stat-grid">
-          <div class="stat-cell">
-            <span class="stat-name mono">FLOW PROTOCOL</span>
-            <span class="stat-value mono">{{ form.value.proto | uppercase }} // {{ form.value.service }}</span>
+        <!-- Summary Diagnostics -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <span class="metric-label">Predicted Class</span>
+            <span class="metric-val">{{ result.prediction === 0 ? 'Class 0 (Normal)' : 'Class 1 (Attack)' }}</span>
           </div>
-          <div class="stat-cell">
-            <span class="stat-name mono">THROUGHPUT RATE</span>
-            <span class="stat-value mono">{{ form.value.rate | number:'1.0-1' }} <small>pkts/s</small></span>
+          <div class="metric-card">
+            <span class="metric-label">Transport Protocol</span>
+            <span class="metric-val">{{ form.value.proto | uppercase }}</span>
           </div>
-          <div class="stat-cell">
-            <span class="stat-name mono">SOURCE LOAD</span>
-            <span class="stat-value mono">{{ (form.value.sload / 1000) | number:'1.0-1' }} <small>Kbps</small></span>
+          <div class="metric-card">
+            <span class="metric-label">Destination Service</span>
+            <span class="metric-val">{{ form.value.service === '-' ? 'General' : (form.value.service | uppercase) }}</span>
           </div>
-          <div class="stat-cell">
-            <span class="stat-name mono">TTL RATIO (S/D)</span>
-            <span class="stat-value mono">{{ form.value.sttl }} / {{ form.value.dttl }}</span>
+          <div class="metric-card">
+            <span class="metric-label">Connection Duration</span>
+            <span class="metric-val">{{ form.value.dur | number:'1.1-3' }}s</span>
           </div>
         </div>
       </div>
 
-      <!-- Error Box -->
-      <div class="hud-error-card" *ngIf="errorMsg">
-        <span class="error-icon mono">[ERR]</span>
-        <div class="error-msg">{{ errorMsg }}</div>
-      </div>
-
-      <!-- Real-Time Audit / Ingest Stream -->
-      <div class="audit-stream-card">
-        <div class="audit-stream-header">
-          <span class="stream-title mono">&gt; RECENT TELEMETRY AUDIT TRAIL</span>
-          <span class="stream-pulse"></span>
-        </div>
-
-        <div class="audit-table-wrapper">
-          <table class="audit-table mono">
-            <thead>
-              <tr>
-                <th>TIME</th>
-                <th>PROTO/SRV</th>
-                <th>LATENCY</th>
-                <th>VERDICT</th>
-                <th>CONFIDENCE</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let entry of auditLogs" [class.row-attack]="entry.label === 'Attack'">
-                <td>{{ entry.timestamp }}</td>
-                <td>{{ entry.protoService }}</td>
-                <td>{{ entry.latencyMs }}ms</td>
-                <td>
-                  <span class="log-tag" [class.tag-attack]="entry.label === 'Attack'" [class.tag-normal]="entry.label === 'Normal'">
-                    {{ entry.label }}
-                  </span>
-                </td>
-                <td>{{ (entry.confidence * 100) | number:'1.0-1' }}%</td>
-              </tr>
-              <tr *ngIf="auditLogs.length === 0">
-                <td colspan="5" class="table-empty">Awaiting first execution trigger...</td>
-              </tr>
-            </tbody>
-          </table>
+      <!-- Error Card -->
+      <div class="error-banner" *ngIf="errorMsg">
+        <span class="error-emoji">⚠️</span>
+        <div>
+          <strong>Server Notice:</strong>
+          <p>{{ errorMsg }}</p>
         </div>
       </div>
 
-      <!-- System Diagnostic Summary -->
-      <div class="system-specs-card mono">
-        <div class="spec-row">
-          <span>MODEL ARCHITECTURE:</span>
-          <span class="text-cyan">RandomForestClassifier (n_est=100)</span>
-        </div>
-        <div class="spec-row">
-          <span>DATASET BENCHMARK:</span>
-          <span>UNSW-NB15 Cyber Benchmark</span>
-        </div>
-        <div class="spec-row">
-          <span>PIPELINE ENCODING:</span>
-          <span>OrdinalEncoder (proto, srv, state)</span>
-        </div>
-        <div class="spec-row">
-          <span>INFERENCE RUNNER:</span>
-          <span>Flask REST API / Gunicorn WSGI</span>
-        </div>
+      <!-- Educational Model Info -->
+      <div class="info-card">
+        <h4 class="info-title">ℹ️ How Does This Work?</h4>
+        <p class="info-text">
+          This system uses a trained <strong>Random Forest Classifier</strong> trained on 42 network flow attributes from the UNSW-NB15 benchmark.
+          It inspects packet transmission timings, packet sizes, protocol states, and frequency metrics to separate benign communications from unauthorized intrusions.
+        </p>
       </div>
-    </div>
-  </main>
+    </section>
+  </div>
 </div>
