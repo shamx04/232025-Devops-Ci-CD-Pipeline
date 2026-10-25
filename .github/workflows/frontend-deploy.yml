@@ -1,0 +1,44 @@
+name: CI – Angular Build & Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write   # needed to push to gh-pages branch
+
+jobs:
+  build-and-deploy:
+    name: Build Angular & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: ml-frontend/package-lock.json
+
+      - name: Install Angular dependencies
+        working-directory: ml-frontend
+        run: npm ci
+
+      - name: Build Angular (production, with base-href)
+        working-directory: ml-frontend
+        run: |
+          npx ng build --configuration production \
+            --base-href "/Devops-Ci-CD-Pipeline/"
+
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ml-frontend/dist/ml-frontend/browser
+          publish_branch: gh-pages
