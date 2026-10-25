@@ -1,36 +1,53 @@
 import json, requests
 
-# Adjust the URL if Flask runs on a different host/port
-API_URL = 'http://127.0.0.1:5000/api/predict'
+API_URL = "http://127.0.0.1:5000/api/predict"
 
-# Example payload with 24 features (replace with actual feature names)
 payload = {
-    "feature1": 0.5,
-    "feature2": 1.2,
-    "feature3": 3.4,
-    "feature4": 0,
-    "feature5": 2,
-    "feature6": 1,
-    "feature7": 0,
-    "feature8": 5,
-    "feature9": 0.1,
-    "feature10": 0.2,
-    "feature11": 0.3,
-    "feature12": 0.4,
-    "feature13": 0.5,
-    "feature14": 0.6,
-    "feature15": 0.7,
-    "feature16": 0.8,
-    "feature17": 0.9,
-    "feature18": 1.0,
-    "feature19": 1.1,
-    "feature20": 1.2,
-    "feature21": 1.3,
-    "feature22": 1.4,
-    "feature23": 1.5,
-    "feature24": 1.6
+    "dur": 0.0,
+    "proto": "tcp",
+    "service": "http",
+    "state": "FIN",
+    "spkts": 2,
+    "dpkts": 0,
+    "sbytes": 500,
+    "dbytes": 0,
+    "rate": 0.0,
+    "sttl": 254,
+    "dttl": 0,
+    "sload": 0.0,
+    "dload": 0.0,
+    "sloss": 0,
+    "dloss": 0,
+    "sinpkt": 0.0,
+    "dinpkt": 0.0,
+    "sjit": 0.0,
+    "djit": 0.0,
+    "swin": 0,
+    "stcpb": 0,
+    "dtcpb": 0,
+    "dwin": 0,
+    "tcprtt": 0.0,
+    "synack": 0.0,
+    "ackdat": 0.0,
+    "smean": 0,
+    "dmean": 0,
+    "trans_depth": 0,
+    "response_body_len": 0,
+    "ct_srv_src": 1,
+    "ct_state_ttl": 0,
+    "ct_dst_ltm": 1,
+    "ct_src_dport_ltm": 1,
+    "ct_dst_sport_ltm": 1,
+    "ct_dst_src_ltm": 1,
+    "is_ftp_login": 0,
+    "ct_ftp_cmd": 0,
+    "ct_flw_http_mthd": 0,
+    "ct_src_ltm": 1,
+    "ct_srv_dst": 1,
+    "is_sm_ips_ports": 0
 }
 
-response = requests.post(API_URL, json=payload)
-print('Status:', response.status_code)
-print('Response:', response.json())
+print("Sending payload to", API_URL)
+resp = requests.post(API_URL, json=payload)
+print("Status:", resp.status_code)
+print("Response:", json.dumps(resp.json(), indent=2))

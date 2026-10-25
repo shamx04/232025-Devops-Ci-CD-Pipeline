@@ -1,0 +1,25 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.env
+
+# Node / Angular
+ml-frontend/node_modules/
+ml-frontend/dist/
+ml-frontend/.angular/
+
+# Data / model (large files – track via Git LFS if needed)
+*.parquet
+*.zip
+rf_binary_artifacts/*.joblib
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp

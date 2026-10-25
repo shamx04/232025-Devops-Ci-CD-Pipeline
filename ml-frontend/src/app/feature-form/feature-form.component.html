@@ -1,0 +1,99 @@
+<div class="container">
+  <h1>🔍 Network Intrusion Detection</h1>
+  <p class="subtitle">Random Forest Binary Classifier · Enter network flow features below</p>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+    <!-- Categorical fields -->
+    <fieldset>
+      <legend>Protocol / Service / State</legend>
+      <div class="row">
+        <label>Protocol
+          <select formControlName="proto">
+            <option *ngFor="let p of protocols" [value]="p">{{ p }}</option>
+          </select>
+        </label>
+        <label>Service
+          <select formControlName="service">
+            <option *ngFor="let s of services" [value]="s">{{ s }}</option>
+          </select>
+        </label>
+        <label>State
+          <select formControlName="state">
+            <option *ngFor="let st of states" [value]="st">{{ st }}</option>
+          </select>
+        </label>
+      </div>
+    </fieldset>
+
+    <!-- Numeric fields (auto-generated pairs) -->
+    <fieldset>
+      <legend>Traffic Statistics</legend>
+      <div class="grid">
+        <label>Duration (dur)<input type="number" formControlName="dur" step="any"></label>
+        <label>Src Packets (spkts)<input type="number" formControlName="spkts"></label>
+        <label>Dst Packets (dpkts)<input type="number" formControlName="dpkts"></label>
+        <label>Src Bytes (sbytes)<input type="number" formControlName="sbytes"></label>
+        <label>Dst Bytes (dbytes)<input type="number" formControlName="dbytes"></label>
+        <label>Rate<input type="number" formControlName="rate" step="any"></label>
+        <label>Src TTL (sttl)<input type="number" formControlName="sttl"></label>
+        <label>Dst TTL (dttl)<input type="number" formControlName="dttl"></label>
+        <label>Src Load (sload)<input type="number" formControlName="sload" step="any"></label>
+        <label>Dst Load (dload)<input type="number" formControlName="dload" step="any"></label>
+        <label>Src Loss (sloss)<input type="number" formControlName="sloss"></label>
+        <label>Dst Loss (dloss)<input type="number" formControlName="dloss"></label>
+        <label>Src Inter-pkt (sinpkt)<input type="number" formControlName="sinpkt" step="any"></label>
+        <label>Dst Inter-pkt (dinpkt)<input type="number" formControlName="dinpkt" step="any"></label>
+        <label>Src Jitter (sjit)<input type="number" formControlName="sjit" step="any"></label>
+        <label>Dst Jitter (djit)<input type="number" formControlName="djit" step="any"></label>
+        <label>Src Win (swin)<input type="number" formControlName="swin"></label>
+        <label>Src TCP Base (stcpb)<input type="number" formControlName="stcpb"></label>
+        <label>Dst TCP Base (dtcpb)<input type="number" formControlName="dtcpb"></label>
+        <label>Dst Win (dwin)<input type="number" formControlName="dwin"></label>
+        <label>TCP RTT (tcprtt)<input type="number" formControlName="tcprtt" step="any"></label>
+        <label>SYN-ACK (synack)<input type="number" formControlName="synack" step="any"></label>
+        <label>ACK-Dat (ackdat)<input type="number" formControlName="ackdat" step="any"></label>
+        <label>Src Mean (smean)<input type="number" formControlName="smean"></label>
+        <label>Dst Mean (dmean)<input type="number" formControlName="dmean"></label>
+        <label>Trans Depth<input type="number" formControlName="trans_depth"></label>
+        <label>Resp Body Len<input type="number" formControlName="response_body_len"></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Connection Tracking</legend>
+      <div class="grid">
+        <label>ct_srv_src<input type="number" formControlName="ct_srv_src"></label>
+        <label>ct_state_ttl<input type="number" formControlName="ct_state_ttl"></label>
+        <label>ct_dst_ltm<input type="number" formControlName="ct_dst_ltm"></label>
+        <label>ct_src_dport_ltm<input type="number" formControlName="ct_src_dport_ltm"></label>
+        <label>ct_dst_sport_ltm<input type="number" formControlName="ct_dst_sport_ltm"></label>
+        <label>ct_dst_src_ltm<input type="number" formControlName="ct_dst_src_ltm"></label>
+        <label>is_ftp_login<input type="number" formControlName="is_ftp_login" min="0" max="1"></label>
+        <label>ct_ftp_cmd<input type="number" formControlName="ct_ftp_cmd"></label>
+        <label>ct_flw_http_mthd<input type="number" formControlName="ct_flw_http_mthd"></label>
+        <label>ct_src_ltm<input type="number" formControlName="ct_src_ltm"></label>
+        <label>ct_srv_dst<input type="number" formControlName="ct_srv_dst"></label>
+        <label>is_sm_ips_ports<input type="number" formControlName="is_sm_ips_ports" min="0" max="1"></label>
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <button type="submit" [disabled]="loading">
+        {{ loading ? 'Predicting…' : 'Predict' }}
+      </button>
+      <button type="button" (click)="reset()">Reset</button>
+    </div>
+  </form>
+
+  <!-- Error -->
+  <div class="error-box" *ngIf="errorMsg">⚠️ {{ errorMsg }}</div>
+
+  <!-- Result panel -->
+  <div class="result-box" *ngIf="result" [class.attack]="result.label === 'Attack'">
+    <h2>{{ result.label === 'Attack' ? '🚨 Attack Detected' : '✅ Normal Traffic' }}</h2>
+    <p>Prediction class: <strong>{{ result.prediction }}</strong></p>
+    <p>Normal probability: <strong>{{ result.probabilities.Normal | number:'1.4-4' }}</strong></p>
+    <p>Attack probability: <strong>{{ result.probabilities.Attack | number:'1.4-4' }}</strong></p>
+  </div>
+</div>
