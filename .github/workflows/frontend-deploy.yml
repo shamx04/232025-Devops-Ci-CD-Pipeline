@@ -33,7 +33,7 @@ jobs:
         working-directory: ml-frontend
         run: |
           npx ng build --configuration production \
-            --base-href "/Devops-Ci-CD-Pipeline/"
+            --base-href "/232025-Devops-Ci-CD-Pipeline/"
 
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
