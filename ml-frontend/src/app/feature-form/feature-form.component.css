@@ -47,6 +47,17 @@ button[type="submit"]:disabled { background: #a0aec0; cursor: not-allowed; }
 button[type="button"]  { background: #e2e8f0; color: #2d3748; }
 button[type="button"]:hover { background: #cbd5e0; }
 
+.static-notice {
+  background: #fffaf0;
+  border: 1px solid #ecc94b;
+  color: #744210;
+  padding: 0.8rem 1rem;
+  border-radius: 6px;
+  margin: 1rem 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
 .error-box { background: #fff5f5; border: 1px solid #fc8181; color: #c53030; padding: 0.8rem 1rem; border-radius: 6px; margin-top: 1rem; }
 
 .result-box { background: #f0fff4; border: 1px solid #68d391; border-radius: 8px; padding: 1.2rem 1.5rem; margin-top: 1.2rem; }

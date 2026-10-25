@@ -15,6 +15,7 @@ export class FeatureFormComponent {
   result: PredictionResult | null = null;
   loading = false;
   errorMsg = '';
+  isStaticDeployment = typeof window !== 'undefined' && window.location.hostname.includes('github.io');
 
   protocols = ['tcp', 'udp', 'icmp', 'arp', 'ospf', 'igmp'];
   services  = ['-', 'http', 'ftp', 'ftp-data', 'dns', 'smtp', 'ssh', 'ssl', 'dhcp', 'pop3', 'radius', 'snmp', 'irc'];

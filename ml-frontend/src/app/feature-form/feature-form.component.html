@@ -78,9 +78,15 @@
       </div>
     </fieldset>
 
+    <div class="static-notice" *ngIf="isStaticDeployment">
+      ⚠️ <strong>GitHub Pages Static Deployment Notice:</strong>
+      GitHub Pages hosts static frontend assets only. Real-time inference requires the local Flask backend service.
+      Run <code>python app.py</code> locally on <code>localhost:5000</code> to execute live predictions.
+    </div>
+
     <div class="actions">
-      <button type="submit" [disabled]="loading">
-        {{ loading ? 'Predicting…' : 'Predict' }}
+      <button type="submit" [disabled]="loading || isStaticDeployment">
+        {{ isStaticDeployment ? 'Prediction Disabled in Static Mode' : (loading ? 'Predicting…' : 'Run Prediction') }}
       </button>
       <button type="button" (click)="reset()">Reset</button>
     </div>
