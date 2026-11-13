@@ -1,0 +1,590 @@
+[
+ {
+  "id": "ftp",
+  "title": "FTP file transfer",
+  "summary": "A file sent over an FTP data channel, closed cleanly.",
+  "truth": "Normal",
+  "score": 0.0,
+  "data": {
+   "dur": 0.37032,
+   "proto": "tcp",
+   "service": "ftp-data",
+   "state": "FIN",
+   "spkts": 14,
+   "dpkts": 6,
+   "sbytes": 8928,
+   "dbytes": 320,
+   "rate": 51.307,
+   "sttl": 31,
+   "dttl": 29,
+   "sload": 179110.0,
+   "dload": 5767.98,
+   "sloss": 4,
+   "dloss": 1,
+   "sinpkt": 28.4862,
+   "dinpkt": 73.9184,
+   "sjit": 2282.59,
+   "djit": 90.723,
+   "swin": 255,
+   "stcpb": 892835479,
+   "dtcpb": 1337486262,
+   "dwin": 255,
+   "tcprtt": 0.000727,
+   "synack": 0.000591,
+   "ackdat": 0.000136,
+   "smean": 638,
+   "dmean": 53,
+   "trans_depth": 0,
+   "response_body_len": 0,
+   "ct_srv_src": 4,
+   "ct_state_ttl": 0,
+   "ct_dst_ltm": 4,
+   "ct_src_dport_ltm": 1,
+   "ct_dst_sport_ltm": 1,
+   "ct_dst_src_ltm": 2,
+   "is_ftp_login": 0,
+   "ct_ftp_cmd": 0,
+   "ct_flw_http_mthd": 0,
+   "ct_src_ltm": 3,
+   "ct_srv_dst": 1,
+   "is_sm_ips_ports": 0
+  },
+  "explain": {
+   "attack_probability": 0.0,
+   "features": [
+    {
+     "feature": "dinpkt",
+     "value": 73.9184,
+     "typical": 0.910582,
+     "attack_if_typical": 0.016,
+     "effect": -0.016
+    },
+    {
+     "feature": "sjit",
+     "value": 2282.59,
+     "typical": 54.4227,
+     "attack_if_typical": 0.015,
+     "effect": -0.015
+    },
+    {
+     "feature": "dur",
+     "value": 0.37032,
+     "typical": 0.0386025,
+     "attack_if_typical": 0.0116,
+     "effect": -0.0116
+    },
+    {
+     "feature": "rate",
+     "value": 51.307,
+     "typical": 1382.26,
+     "attack_if_typical": 0.0066,
+     "effect": -0.0066
+    },
+    {
+     "feature": "dbytes",
+     "value": 320,
+     "typical": 1112,
+     "attack_if_typical": 0.005,
+     "effect": -0.005
+    },
+    {
+     "feature": "sinpkt",
+     "value": 28.4862,
+     "typical": 1.43091,
+     "attack_if_typical": 0.005,
+     "effect": -0.005
+    }
+   ]
+  }
+ },
+ {
+  "id": "web",
+  "title": "Web page request",
+  "summary": "An HTTP request answered with a page.",
+  "truth": "Normal",
+  "score": 0.0133,
+  "data": {
+   "dur": 1.14622,
+   "proto": "tcp",
+   "service": "http",
+   "state": "FIN",
+   "spkts": 11,
+   "dpkts": 16,
+   "sbytes": 1528,
+   "dbytes": 7488,
+   "rate": 22.6832,
+   "sttl": 31,
+   "dttl": 29,
+   "sload": 9701.44,
+   "dload": 48995.8,
+   "sloss": 3,
+   "dloss": 4,
+   "sinpkt": 114.588,
+   "dinpkt": 76.379,
+   "sjit": 10787.2,
+   "djit": 8819.16,
+   "swin": 255,
+   "stcpb": 2086658440,
+   "dtcpb": 4232999330,
+   "dwin": 255,
+   "tcprtt": 0.000647,
+   "synack": 0.000532,
+   "ackdat": 0.000115,
+   "smean": 139,
+   "dmean": 468,
+   "trans_depth": 1,
+   "response_body_len": 3924,
+   "ct_srv_src": 1,
+   "ct_state_ttl": 0,
+   "ct_dst_ltm": 3,
+   "ct_src_dport_ltm": 1,
+   "ct_dst_sport_ltm": 1,
+   "ct_dst_src_ltm": 1,
+   "is_ftp_login": 0,
+   "ct_ftp_cmd": 0,
+   "ct_flw_http_mthd": 1,
+   "ct_src_ltm": 3,
+   "ct_srv_dst": 2,
+   "is_sm_ips_ports": 0
+  },
+  "explain": {
+   "attack_probability": 0.0133,
+   "features": [
+    {
+     "feature": "dinpkt",
+     "value": 76.379,
+     "typical": 0.910582,
+     "attack_if_typical": 0.0392,
+     "effect": -0.0259
+    },
+    {
+     "feature": "dloss",
+     "value": 4,
+     "typical": 2,
+     "attack_if_typical": 0.0233,
+     "effect": -0.01
+    },
+    {
+     "feature": "djit",
+     "value": 8819.16,
+     "typical": 19.2262,
+     "attack_if_typical": 0.005,
+     "effect": 0.0083
+    },
+    {
+     "feature": "dur",
+     "value": 1.14622,
+     "typical": 0.0386025,
+     "attack_if_typical": 0.0183,
+     "effect": -0.005
+    },
+    {
+     "feature": "dbytes",
+     "value": 7488,
+     "typical": 1112,
+     "attack_if_typical": 0.0083,
+     "effect": 0.005
+    },
+    {
+     "feature": "sinpkt",
+     "value": 114.588,
+     "typical": 1.43091,
+     "attack_if_typical": 0.0183,
+     "effect": -0.005
+    }
+   ]
+  }
+ },
+ {
+  "id": "dns",
+  "title": "DNS flood",
+  "summary": "A burst of UDP DNS queries with no replies.",
+  "truth": "Generic",
+  "score": 1.0,
+  "data": {
+   "dur": 3e-06,
+   "proto": "udp",
+   "service": "dns",
+   "state": "INT",
+   "spkts": 2,
+   "dpkts": 0,
+   "sbytes": 114,
+   "dbytes": 0,
+   "rate": 333333.0,
+   "sttl": 254,
+   "dttl": 0,
+   "sload": 152000000,
+   "dload": 0,
+   "sloss": 0,
+   "dloss": 0,
+   "sinpkt": 0.003,
+   "dinpkt": 0,
+   "sjit": 0,
+   "djit": 0,
+   "swin": 0,
+   "stcpb": 0,
+   "dtcpb": 0,
+   "dwin": 0,
+   "tcprtt": 0,
+   "synack": 0,
+   "ackdat": 0,
+   "smean": 57,
+   "dmean": 0,
+   "trans_depth": 0,
+   "response_body_len": 0,
+   "ct_srv_src": 18,
+   "ct_state_ttl": 2,
+   "ct_dst_ltm": 16,
+   "ct_src_dport_ltm": 16,
+   "ct_dst_sport_ltm": 8,
+   "ct_dst_src_ltm": 18,
+   "is_ftp_login": 0,
+   "ct_ftp_cmd": 0,
+   "ct_flw_http_mthd": 0,
+   "ct_src_ltm": 17,
+   "ct_srv_dst": 18,
+   "is_sm_ips_ports": 0
+  },
+  "explain": {
+   "attack_probability": 1.0,
+   "features": [
+    {
+     "feature": "ct_state_ttl",
+     "value": 2,
+     "typical": 0,
+     "attack_if_typical": 0.7726,
+     "effect": 0.2273
+    },
+    {
+     "feature": "sttl",
+     "value": 254,
+     "typical": 31,
+     "attack_if_typical": 0.78,
+     "effect": 0.22
+    },
+    {
+     "feature": "swin",
+     "value": 0,
+     "typical": 255,
+     "attack_if_typical": 0.87,
+     "effect": 0.13
+    },
+    {
+     "feature": "ct_dst_sport_ltm",
+     "value": 8,
+     "typical": 1,
+     "attack_if_typical": 0.8915,
+     "effect": 0.1085
+    },
+    {
+     "feature": "service",
+     "value": "dns",
+     "typical": "-",
+     "attack_if_typical": 0.9004,
+     "effect": 0.0996
+    },
+    {
+     "feature": "sbytes",
+     "value": 114,
+     "typical": 1470,
+     "attack_if_typical": 0.9067,
+     "effect": 0.0933
+    }
+   ]
+  }
+ },
+ {
+  "id": "shellcode",
+  "title": "Shellcode delivery",
+  "summary": "A short TCP session carrying an exploit payload.",
+  "truth": "Shellcode",
+  "score": 0.9306,
+  "data": {
+   "dur": 0.320574,
+   "proto": "tcp",
+   "service": "-",
+   "state": "FIN",
+   "spkts": 10,
+   "dpkts": 6,
+   "sbytes": 568,
+   "dbytes": 268,
+   "rate": 46.7911,
+   "sttl": 254,
+   "dttl": 252,
+   "sload": 12777.1,
+   "dload": 5589.97,
+   "sloss": 2,
+   "dloss": 1,
+   "sinpkt": 35.6193,
+   "dinpkt": 56.5934,
+   "sjit": 1710.91,
+   "djit": 80.8177,
+   "swin": 255,
+   "stcpb": 2245818532,
+   "dtcpb": 2311004059,
+   "dwin": 255,
+   "tcprtt": 0.086109,
+   "synack": 0.036982,
+   "ackdat": 0.049127,
+   "smean": 57,
+   "dmean": 45,
+   "trans_depth": 0,
+   "response_body_len": 0,
+   "ct_srv_src": 1,
+   "ct_state_ttl": 1,
+   "ct_dst_ltm": 1,
+   "ct_src_dport_ltm": 1,
+   "ct_dst_sport_ltm": 1,
+   "ct_dst_src_ltm": 1,
+   "is_ftp_login": 0,
+   "ct_ftp_cmd": 0,
+   "ct_flw_http_mthd": 0,
+   "ct_src_ltm": 1,
+   "ct_srv_dst": 1,
+   "is_sm_ips_ports": 0
+  },
+  "explain": {
+   "attack_probability": 0.9306,
+   "features": [
+    {
+     "feature": "sttl",
+     "value": 254,
+     "typical": 31,
+     "attack_if_typical": 0.6468,
+     "effect": 0.2838
+    },
+    {
+     "feature": "dttl",
+     "value": 252,
+     "typical": 29,
+     "attack_if_typical": 0.7925,
+     "effect": 0.1381
+    },
+    {
+     "feature": "ct_state_ttl",
+     "value": 1,
+     "typical": 0,
+     "attack_if_typical": 0.8534,
+     "effect": 0.0772
+    },
+    {
+     "feature": "dur",
+     "value": 0.320574,
+     "typical": 0.0386025,
+     "attack_if_typical": 0.8615,
+     "effect": 0.0691
+    },
+    {
+     "feature": "ackdat",
+     "value": 0.049127,
+     "typical": 0.000125,
+     "attack_if_typical": 0.8724,
+     "effect": 0.0582
+    },
+    {
+     "feature": "dinpkt",
+     "value": 56.5934,
+     "typical": 0.910582,
+     "attack_if_typical": 0.8846,
+     "effect": 0.046
+    }
+   ]
+  }
+ },
+ {
+  "id": "false-alarm",
+  "title": "Normal, but flagged",
+  "summary": "Real normal traffic the model mistakes for an attack.",
+  "truth": "Normal",
+  "score": 0.997,
+  "data": {
+   "dur": 9e-06,
+   "proto": "udp",
+   "service": "-",
+   "state": "INT",
+   "spkts": 2,
+   "dpkts": 0,
+   "sbytes": 176,
+   "dbytes": 0,
+   "rate": 111111.0,
+   "sttl": 254,
+   "dttl": 0,
+   "sload": 78222216,
+   "dload": 0,
+   "sloss": 0,
+   "dloss": 0,
+   "sinpkt": 0.009,
+   "dinpkt": 0,
+   "sjit": 0,
+   "djit": 0,
+   "swin": 0,
+   "stcpb": 0,
+   "dtcpb": 0,
+   "dwin": 0,
+   "tcprtt": 0,
+   "synack": 0,
+   "ackdat": 0,
+   "smean": 88,
+   "dmean": 0,
+   "trans_depth": 0,
+   "response_body_len": 0,
+   "ct_srv_src": 2,
+   "ct_state_ttl": 2,
+   "ct_dst_ltm": 1,
+   "ct_src_dport_ltm": 1,
+   "ct_dst_sport_ltm": 1,
+   "ct_dst_src_ltm": 1,
+   "is_ftp_login": 0,
+   "ct_ftp_cmd": 0,
+   "ct_flw_http_mthd": 0,
+   "ct_src_ltm": 15,
+   "ct_srv_dst": 1,
+   "is_sm_ips_ports": 0
+  },
+  "explain": {
+   "attack_probability": 0.997,
+   "features": [
+    {
+     "feature": "ct_state_ttl",
+     "value": 2,
+     "typical": 0,
+     "attack_if_typical": 0.6673,
+     "effect": 0.3297
+    },
+    {
+     "feature": "sttl",
+     "value": 254,
+     "typical": 31,
+     "attack_if_typical": 0.702,
+     "effect": 0.295
+    },
+    {
+     "feature": "state",
+     "value": "INT",
+     "typical": "FIN",
+     "attack_if_typical": 0.8044,
+     "effect": 0.1926
+    },
+    {
+     "feature": "swin",
+     "value": 0,
+     "typical": 255,
+     "attack_if_typical": 0.827,
+     "effect": 0.17
+    },
+    {
+     "feature": "sbytes",
+     "value": 176,
+     "typical": 1470,
+     "attack_if_typical": 0.8784,
+     "effect": 0.1187
+    },
+    {
+     "feature": "sloss",
+     "value": 0,
+     "typical": 3,
+     "attack_if_typical": 0.8852,
+     "effect": 0.1118
+    }
+   ]
+  }
+ },
+ {
+  "id": "missed",
+  "title": "Attack it misses",
+  "summary": "A fuzzing flow the model lets through as normal.",
+  "truth": "Fuzzers",
+  "score": 0.0385,
+  "data": {
+   "dur": 7e-06,
+   "proto": "udp",
+   "service": "-",
+   "state": "INT",
+   "spkts": 2,
+   "dpkts": 0,
+   "sbytes": 1066,
+   "dbytes": 0,
+   "rate": 142857.0,
+   "sttl": 254,
+   "dttl": 0,
+   "sload": 609142848,
+   "dload": 0,
+   "sloss": 0,
+   "dloss": 0,
+   "sinpkt": 0.007,
+   "dinpkt": 0,
+   "sjit": 0,
+   "djit": 0,
+   "swin": 0,
+   "stcpb": 0,
+   "dtcpb": 0,
+   "dwin": 0,
+   "tcprtt": 0,
+   "synack": 0,
+   "ackdat": 0,
+   "smean": 533,
+   "dmean": 0,
+   "trans_depth": 0,
+   "response_body_len": 0,
+   "ct_srv_src": 14,
+   "ct_state_ttl": 2,
+   "ct_dst_ltm": 3,
+   "ct_src_dport_ltm": 3,
+   "ct_dst_sport_ltm": 1,
+   "ct_dst_src_ltm": 14,
+   "is_ftp_login": 0,
+   "ct_ftp_cmd": 0,
+   "ct_flw_http_mthd": 0,
+   "ct_src_ltm": 3,
+   "ct_srv_dst": 14,
+   "is_sm_ips_ports": 0
+  },
+  "explain": {
+   "attack_probability": 0.0385,
+   "features": [
+    {
+     "feature": "smean",
+     "value": 533,
+     "typical": 73,
+     "attack_if_typical": 0.4118,
+     "effect": -0.3733
+    },
+    {
+     "feature": "ct_srv_src",
+     "value": 14,
+     "typical": 4,
+     "attack_if_typical": 0.3709,
+     "effect": -0.3324
+    },
+    {
+     "feature": "sload",
+     "value": 609142848,
+     "typical": 431328.0,
+     "attack_if_typical": 0.3471,
+     "effect": -0.3086
+    },
+    {
+     "feature": "ct_dst_src_ltm",
+     "value": 14,
+     "typical": 2,
+     "attack_if_typical": 0.3147,
+     "effect": -0.2762
+    },
+    {
+     "feature": "ct_srv_dst",
+     "value": 14,
+     "typical": 4,
+     "attack_if_typical": 0.2941,
+     "effect": -0.2556
+    },
+    {
+     "feature": "ct_src_dport_ltm",
+     "value": 3,
+     "typical": 1,
+     "attack_if_typical": 0.2324,
+     "effect": -0.1939
+    }
+   ]
+  }
+ }
+]

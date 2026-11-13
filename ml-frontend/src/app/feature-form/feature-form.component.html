@@ -1,309 +1,285 @@
-<div class="app-container">
-  <!-- Header -->
-  <header class="main-header">
+<div class="page">
+  <header class="masthead">
     <div class="brand">
-      <div class="brand-icon">🛡️</div>
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="3" y="9" width="2.5" height="6" rx="1" />
+        <rect x="8" y="6" width="2.5" height="9" rx="1" />
+        <rect x="13" y="10" width="2.5" height="5" rx="1" />
+        <rect x="18" y="7" width="2.5" height="8" rx="1" />
+        <rect class="back" x="11" y="17" width="2.5" height="5" rx="1" />
+        <rect class="back" x="21" y="17" width="2.5" height="8" rx="1" />
+        <rect class="back" x="26" y="17" width="2.5" height="4" rx="1" />
+      </svg>
       <div>
-        <h1 class="brand-title">Network Traffic AI Inspector</h1>
-        <p class="brand-subtitle">
-          Evaluate whether network traffic is <strong>Safe (Normal)</strong> or a <strong>Cyber Attack</strong> using Machine Learning.
+        <h1>Flow Check</h1>
+        <p class="lede">
+          Is this network flow normal traffic or an attack? Load a captured flow, change any of its
+          42 features, and run it through a random forest trained on the UNSW-NB15 dataset.
         </p>
       </div>
     </div>
 
-    <!-- Mode Badge & Switch -->
-    <div class="mode-wrapper" (click)="toggleMode()" title="Click to toggle between Browser Demo Mode and Local Flask API">
-      <span class="mode-label">Mode:</span>
-      <span class="mode-pill" [class.mode-demo]="demoMode" [class.mode-live]="!demoMode">
-        <span class="mode-dot"></span>
-        {{ demoMode ? 'Browser Demo Mode' : 'Live Flask API (localhost:5000)' }}
-      </span>
+    <div class="mode">
+      <span class="mode-caption" id="mode-caption">Run checks with</span>
+      <div class="segmented" role="group" aria-labelledby="mode-caption">
+        <button type="button" [attr.aria-pressed]="!demoMode" [disabled]="isStaticDeployment"
+                (click)="setMode(false)">Flask API</button>
+        <button type="button" [attr.aria-pressed]="demoMode" (click)="setMode(true)">In-browser demo</button>
+        <span class="segmented-thumb" [class.right]="demoMode" aria-hidden="true"></span>
+      </div>
+      @if (isStaticDeployment) {
+        <p class="mode-note">GitHub Pages can't run the Python model, so this copy uses the demo.</p>
+      }
     </div>
   </header>
 
-  <!-- Step 1: Select Scenario Presets -->
-  <section class="section-box">
-    <div class="section-header">
-      <div class="step-badge">1</div>
-      <div>
-        <h2 class="section-title">Select a Traffic Scenario to Test</h2>
-        <p class="section-desc">Click any real-world traffic sample below to test the AI model instantly:</p>
+  <!-- The flow trace: the flow's packets drawn from its features, and the verdict. -->
+  <section class="trace-panel"
+           [class.is-attack]="result?.label === 'Attack' && !loading"
+           [class.is-normal]="result?.label === 'Normal' && !loading"
+           [class.is-loading]="loading"
+           [class.is-stale]="isStale"
+           aria-labelledby="trace-heading">
+    <h2 class="visually-hidden" id="trace-heading">Flow and verdict</h2>
+
+    <div class="trace">
+      <div class="endpoint endpoint-client">
+        <span class="endpoint-name">Client</span>
+      </div>
+
+      <div class="lanes" aria-hidden="true">
+        @for (run of [runId]; track run) {
+          <div class="lane lane-out">
+            @for (p of trace.out; track $index) {
+              <span class="pkt" [style.--l]="p.left + '%'" [style.--h]="p.height" [style.--d]="p.delay + 'ms'"></span>
+            }
+            @if (trace.outHidden > 0) {
+              <span class="lane-more">+{{ trace.outHidden | number }}</span>
+            }
+          </div>
+          <div class="lane-axis">
+            <span>0 s</span>
+            <span class="axis-line"></span>
+            <span>{{ form.value.dur | number: '1.0-6' }} s</span>
+          </div>
+          <div class="lane lane-back">
+            @for (p of trace.back; track $index) {
+              <span class="pkt" [style.--l]="p.left + '%'" [style.--h]="p.height" [style.--d]="p.delay + 'ms'"></span>
+            }
+            @if (trace.backHidden > 0) {
+              <span class="lane-more">+{{ trace.backHidden | number }}</span>
+            }
+            @if (trace.back.length === 0) {
+              <span class="lane-empty">No reply from the server</span>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="endpoint endpoint-server">
+        <span class="endpoint-name">Server</span>
       </div>
     </div>
 
-    <div class="scenario-grid">
-      <div 
-        *ngFor="let s of scenarios" 
-        class="scenario-card" 
-        [class.active]="selectedScenarioId === s.id"
-        [class.card-safe]="s.type === 'safe'"
-        [class.card-threat]="s.type === 'threat'"
-        (click)="selectScenario(s)"
-      >
-        <div class="scenario-top">
-          <span class="scenario-emoji">{{ s.icon }}</span>
-          <span class="type-pill" [class.pill-safe]="s.type === 'safe'" [class.pill-threat]="s.type === 'threat'">
-            {{ s.type === 'safe' ? 'Safe Traffic' : 'Cyber Attack' }}
-          </span>
-        </div>
-        <h3 class="scenario-title">{{ s.title }}</h3>
-        <p class="scenario-text">{{ s.summary }}</p>
+    <div class="trace-foot">
+      <ul class="trace-legend">
+        <li><span class="swatch swatch-out"></span>{{ form.value.spkts | number }} sent, {{ form.value.sbytes | number }} bytes</li>
+        <li><span class="swatch swatch-back"></span>{{ form.value.dpkts | number }} returned, {{ form.value.dbytes | number }} bytes</li>
+        <li class="legend-proto">{{ (form.value.proto + '').toUpperCase() }}{{ form.value.service !== '-' ? ' / ' + form.value.service : '' }}, ended {{ form.value.state }}</li>
+      </ul>
+
+      <div class="verdict" aria-live="polite" aria-atomic="true">
+        @if (loading) {
+          <p class="verdict-word verdict-pending">Checking<span class="dots"><i></i><i></i><i></i></span></p>
+          <p class="verdict-detail">{{ demoMode ? 'Running the demo rule' : 'Sending 42 features to the model' }}</p>
+        } @else if (result) {
+          @for (run of [runId]; track run) {
+            <p class="verdict-word">{{ result.label === 'Attack' ? 'Attack' : 'Normal traffic' }}</p>
+            <div class="meter" role="img"
+                 [attr.aria-label]="'Attack probability ' + (result.probabilities.Attack * 100 | number: '1.0-1') + ' percent'">
+              <span class="meter-fill" [style.--p]="result.probabilities.Attack"></span>
+              <span class="meter-mark"></span>
+            </div>
+            <div class="meter-scale" aria-hidden="true">
+              <span>Normal {{ result.probabilities.Normal * 100 | number: '1.0-1' }}%</span>
+              <span>Attack {{ result.probabilities.Attack * 100 | number: '1.0-1' }}%</span>
+            </div>
+            <p class="verdict-detail">
+              @if (resultDemo) { Demo estimate from a rule of thumb, not the trained model. }
+              @else { Verdict from the trained random forest. }
+            </p>
+          }
+        } @else if (errorMsg) {
+          <p class="verdict-word verdict-none">No result</p>
+        }
       </div>
     </div>
+
+    @if (isStale) {
+      <div class="stale-bar">
+        <p>You changed the flow after this check. The verdict above is for the earlier values.</p>
+        <button type="button" class="btn btn-small" (click)="check()" [disabled]="!canCheck">Check again</button>
+      </div>
+    }
+
+    @if (errorMsg) {
+      <div class="error" role="alert">
+        <p>{{ errorMsg }}</p>
+        <div class="error-actions">
+          <button type="button" class="btn btn-small" (click)="check()">Try again</button>
+          <button type="button" class="btn btn-small btn-quiet" (click)="setMode(true); check()">Use the demo</button>
+        </div>
+      </div>
+    }
   </section>
 
-  <!-- Dual Grid: Inspection Form & AI Results -->
-  <div class="workspace-grid">
-    <!-- Left Column: Key Parameters & Advanced Knobs -->
-    <section class="section-box form-section">
-      <div class="section-header">
-        <div class="step-badge">2</div>
-        <div>
-          <h2 class="section-title">Connection Parameters</h2>
-          <p class="section-desc">Inspect or customize the flow features before running the prediction:</p>
-        </div>
+  <div class="workspace">
+    <section class="editor" aria-labelledby="samples-heading">
+      <div class="block-head">
+        <h2 id="samples-heading">Start from a captured flow</h2>
+        <p>Each one is a real record from the dataset. Choosing one checks it straight away.</p>
       </div>
 
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
-        <!-- Friendly Essential Knobs -->
-        <div class="friendly-grid">
-          <div class="input-card">
-            <label class="input-label" for="proto">
-              <span>Protocol</span>
-              <span class="help-hint">Network transport rule</span>
-            </label>
-            <select id="proto" formControlName="proto" class="clean-select">
-              <option *ngFor="let p of protocols" [value]="p">{{ p | uppercase }}</option>
-            </select>
-          </div>
+      <div class="samples">
+        @for (s of samples; track s.id) {
+          <button type="button" class="sample" [attr.aria-pressed]="selectedSample.id === s.id"
+                  [class.sample-attack]="s.expected === 'Attack'" (click)="selectSample(s)">
+            <span class="sample-title">{{ s.title }}</span>
+            <span class="sample-summary">{{ s.summary }}</span>
+            <span class="sample-label">Labelled {{ s.expected === 'Attack' ? 'attack' : 'normal' }}</span>
+          </button>
+        }
+      </div>
 
-          <div class="input-card">
-            <label class="input-label" for="service">
-              <span>Target Service</span>
-              <span class="help-hint">Destination application</span>
-            </label>
-            <select id="service" formControlName="service" class="clean-select">
-              <option *ngFor="let s of services" [value]="s">{{ s === '-' ? 'General / Raw' : (s | uppercase) }}</option>
-            </select>
-          </div>
-
-          <div class="input-card">
-            <label class="input-label" for="state">
-              <span>Connection State</span>
-              <span class="help-hint">TCP handshake status</span>
-            </label>
-            <select id="state" formControlName="state" class="clean-select">
-              <option *ngFor="let st of states" [value]="st">{{ st }}</option>
-            </select>
-          </div>
-
-          <div class="input-card">
-            <label class="input-label" for="dur">
-              <span>Duration (seconds)</span>
-              <span class="help-hint">Length of transmission</span>
-            </label>
-            <input id="dur" type="number" formControlName="dur" step="any" class="clean-input">
-          </div>
-
-          <div class="input-card">
-            <label class="input-label" for="rate">
-              <span>Transfer Rate</span>
-              <span class="help-hint">Packets per second</span>
-            </label>
-            <input id="rate" type="number" formControlName="rate" step="any" class="clean-input">
-          </div>
-
-          <div class="input-card">
-            <label class="input-label" for="spkts">
-              <span>Packets Sent / Received</span>
-              <span class="help-hint">Client vs Server packets</span>
-            </label>
-            <div class="dual-inputs">
-              <input type="number" formControlName="spkts" title="Source Packets" placeholder="Src" class="clean-input">
-              <input type="number" formControlName="dpkts" title="Destination Packets" placeholder="Dst" class="clean-input">
-            </div>
-          </div>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="fields-form" novalidate>
+        <div class="fields-head">
+          <h2>Edit the flow</h2>
+          <label class="search">
+            <span class="visually-hidden">Find a feature</span>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" /><path d="m13 13 4 4" /></svg>
+            <input type="search" placeholder="Find a feature, e.g. ttl" [value]="fieldQuery"
+                   (input)="fieldQuery = $any($event.target).value" autocomplete="off">
+          </label>
         </div>
 
-        <!-- Collapsible Advanced Technical Parameters (All 42 Features) -->
-        <div class="advanced-container">
-          <button type="button" class="advanced-toggle-btn" (click)="toggleAdvanced()">
-            <span>{{ showAdvanced ? '▼ Hide' : '▶ Show' }} All 42 Technical Model Parameters</span>
-            <span class="advanced-badge">Model Schema</span>
-          </button>
+        @if (!fieldQuery.trim()) {
+          <div class="tabs" role="tablist" aria-label="Feature groups">
+            @for (g of groups; track g.id; let i = $index) {
+              <button type="button" role="tab" class="tab" [id]="'tab-' + g.id"
+                      [attr.aria-selected]="activeGroup === g.id" [attr.aria-controls]="'panel-' + g.id"
+                      [attr.tabindex]="activeGroup === g.id ? 0 : -1"
+                      (click)="setGroup(g.id)" (keydown)="onTabKey($event, i)">
+                {{ g.label }}
+                @if (editedCount(g) > 0) {
+                  <span class="tab-count" [attr.aria-label]="editedCount(g) + ' edited'">{{ editedCount(g) }}</span>
+                }
+              </button>
+            }
+          </div>
+        }
 
-          <div class="advanced-panel" *ngIf="showAdvanced">
-            <p class="advanced-intro">
-              These 42 features are extracted from the UNSW-NB15 dataset and fed directly into the Random Forest classifier.
-            </p>
-
-            <div class="adv-group-title">Packet Sizes &amp; Loss Volumes</div>
-            <div class="adv-grid">
-              <label>sbytes (Src Bytes)<input type="number" formControlName="sbytes"></label>
-              <label>dbytes (Dst Bytes)<input type="number" formControlName="dbytes"></label>
-              <label>sload (Src Bits/s)<input type="number" formControlName="sload" step="any"></label>
-              <label>dload (Dst Bits/s)<input type="number" formControlName="dload" step="any"></label>
-              <label>sloss (Src Pkt Loss)<input type="number" formControlName="sloss"></label>
-              <label>dloss (Dst Pkt Loss)<input type="number" formControlName="dloss"></label>
-              <label>smean (Src Avg Pkt Size)<input type="number" formControlName="smean"></label>
-              <label>dmean (Dst Avg Pkt Size)<input type="number" formControlName="dmean"></label>
-            </div>
-
-            <div class="adv-group-title">Timing, Latency &amp; Jitter</div>
-            <div class="adv-grid">
-              <label>sinpkt (Src Inter-pkt ms)<input type="number" formControlName="sinpkt" step="any"></label>
-              <label>dinpkt (Dst Inter-pkt ms)<input type="number" formControlName="dinpkt" step="any"></label>
-              <label>sjit (Src Jitter)<input type="number" formControlName="sjit" step="any"></label>
-              <label>djit (Dst Jitter)<input type="number" formControlName="djit" step="any"></label>
-              <label>tcprtt (TCP Round-Trip s)<input type="number" formControlName="tcprtt" step="any"></label>
-              <label>synack (SYN to SYN-ACK s)<input type="number" formControlName="synack" step="any"></label>
-              <label>ackdat (SYN-ACK to ACK s)<input type="number" formControlName="ackdat" step="any"></label>
-              <label>trans_depth (HTTP Depth)<input type="number" formControlName="trans_depth"></label>
-              <label>response_body_len (Resp Length)<input type="number" formControlName="response_body_len"></label>
-            </div>
-
-            <div class="adv-group-title">TCP Window &amp; TTL Parameters</div>
-            <div class="adv-grid">
-              <label>sttl (Src TTL)<input type="number" formControlName="sttl"></label>
-              <label>dttl (Dst TTL)<input type="number" formControlName="dttl"></label>
-              <label>swin (Src Window Advertised)<input type="number" formControlName="swin"></label>
-              <label>dwin (Dst Window Advertised)<input type="number" formControlName="dwin"></label>
-              <label>stcpb (Src TCP Base Sequence)<input type="number" formControlName="stcpb"></label>
-              <label>dtcpb (Dst TCP Base Sequence)<input type="number" formControlName="dtcpb"></label>
-            </div>
-
-            <div class="adv-group-title">Connection Tracking Matrix (Flow History)</div>
-            <div class="adv-grid">
-              <label>ct_srv_src<input type="number" formControlName="ct_srv_src"></label>
-              <label>ct_state_ttl<input type="number" formControlName="ct_state_ttl"></label>
-              <label>ct_dst_ltm<input type="number" formControlName="ct_dst_ltm"></label>
-              <label>ct_src_dport_ltm<input type="number" formControlName="ct_src_dport_ltm"></label>
-              <label>ct_dst_sport_ltm<input type="number" formControlName="ct_dst_sport_ltm"></label>
-              <label>ct_dst_src_ltm<input type="number" formControlName="ct_dst_src_ltm"></label>
-              <label>is_ftp_login<input type="number" formControlName="is_ftp_login" min="0" max="1"></label>
-              <label>ct_ftp_cmd<input type="number" formControlName="ct_ftp_cmd"></label>
-              <label>ct_flw_http_mthd<input type="number" formControlName="ct_flw_http_mthd"></label>
-              <label>ct_src_ltm<input type="number" formControlName="ct_src_ltm"></label>
-              <label>ct_srv_dst<input type="number" formControlName="ct_srv_dst"></label>
-              <label>is_sm_ips_ports<input type="number" formControlName="is_sm_ips_ports" min="0" max="1"></label>
+        @for (g of visibleGroups; track g.id) {
+          <div class="group" [attr.role]="fieldQuery.trim() ? null : 'tabpanel'" [id]="'panel-' + g.id"
+               [attr.aria-labelledby]="fieldQuery.trim() ? null : 'tab-' + g.id">
+            @if (fieldQuery.trim()) {
+              <h3 class="group-title">{{ g.label }}</h3>
+            }
+            <div class="grid">
+              @for (f of g.fields; track f.key) {
+                <div class="field" [class.is-edited]="isEdited(f.key)" [class.is-invalid]="isInvalid(f.key)">
+                  <label class="field-label" [for]="'f-' + f.key">
+                    {{ f.label }}
+                    @if (f.unit) { <span class="unit">{{ f.unit }}</span> }
+                  </label>
+                  <div class="control">
+                    @if (f.options) {
+                      <select [id]="'f-' + f.key" [formControlName]="f.key"
+                              [attr.aria-describedby]="'h-' + f.key">
+                        @for (o of f.options; track o) {
+                          <option [value]="o">{{ o === '-' ? '- (unknown)' : o }}</option>
+                        }
+                      </select>
+                    } @else {
+                      <input type="number" step="any" inputmode="decimal" [id]="'f-' + f.key"
+                             [formControlName]="f.key" [attr.aria-describedby]="'h-' + f.key">
+                    }
+                    @if (isEdited(f.key)) {
+                      <button type="button" class="revert" (click)="revertField(f.key)"
+                              [attr.aria-label]="'Revert ' + f.label + ' to ' + selectedSample.data[f.key]"
+                              [title]="'Back to ' + selectedSample.data[f.key]">
+                        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 8h8a4 4 0 0 1 0 8H8" /><path d="M7 5 4 8l3 3" /></svg>
+                      </button>
+                    }
+                  </div>
+                  <p class="help" [id]="'h-' + f.key">
+                    @if (isInvalid(f.key)) { Enter a number. } @else { {{ f.help }} }
+                    <code>{{ f.key }}</code>
+                  </p>
+                </div>
+              }
             </div>
           </div>
-        </div>
+        } @empty {
+          <p class="no-match">No feature matches “{{ fieldQuery }}”. Try a name like <em>bytes</em>, <em>ttl</em> or <em>jitter</em>.</p>
+        }
 
-        <!-- Action Buttons -->
-        <div class="form-actions">
-          <button type="submit" class="analyze-btn" [disabled]="loading">
-            <span class="btn-spinner" *ngIf="loading"></span>
-            <span>{{ loading ? 'Running AI Inference...' : 'Analyze Traffic Flow' }}</span>
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" [disabled]="!canCheck">
+            @if (loading) { Checking… } @else { Check this flow }
           </button>
-
-          <button type="button" class="reset-btn" (click)="reset()">
-            Reset Values
-          </button>
+          <span class="shortcut"><kbd>Ctrl</kbd> <kbd>Enter</kbd></span>
+          @if (editedKeys.length > 0) {
+            <span class="edited-note">
+              {{ editedKeys.length }} {{ editedKeys.length === 1 ? 'value differs' : 'values differ' }} from
+              “{{ selectedSample.title }}”
+            </span>
+            <button type="button" class="btn btn-quiet" (click)="revertAll()">Revert all</button>
+          }
         </div>
       </form>
     </section>
 
-    <!-- Right Column: AI Analysis Result -->
-    <section class="section-box result-section">
-      <div class="section-header">
-        <div class="step-badge">3</div>
-        <div>
-          <h2 class="section-title">AI Prediction Result</h2>
-          <p class="section-desc">Outcome evaluated by the Random Forest classifier:</p>
-        </div>
-      </div>
+    <aside class="side">
+      <section class="history" aria-labelledby="history-heading">
+        <h2 id="history-heading">Recent checks</h2>
+        @if (history.length === 0) {
+          <p class="empty">Checks you run appear here. Select one to load its values again.</p>
+        } @else {
+          <ol class="history-list">
+            @for (h of history; track h.id) {
+              <li>
+                <button type="button" class="history-row" (click)="restore(h)"
+                        [class.row-attack]="h.label === 'Attack'"
+                        [attr.aria-label]="'Load ' + h.sampleTitle + (h.edited ? ', edited' : '') + ', ' + h.label + ', checked at ' + h.time">
+                  <span class="row-dot" aria-hidden="true"></span>
+                  <span class="row-main">
+                    <span class="row-title">{{ h.sampleTitle }}@if (h.edited) {<em>, edited</em>}</span>
+                    <span class="row-sub">{{ h.time }}, {{ h.latencyMs }} ms{{ h.demo ? ', demo' : '' }}</span>
+                  </span>
+                  <span class="row-verdict">
+                    {{ h.label === 'Attack' ? 'Attack' : 'Normal' }}
+                    <span class="row-conf">{{ h.confidence * 100 | number: '1.0-0' }}%</span>
+                  </span>
+                </button>
+              </li>
+            }
+          </ol>
+        }
+      </section>
 
-      <!-- Verdict Banner Card -->
-      <div *ngIf="result" class="verdict-card" [class.verdict-safe]="result.label === 'Normal'" [class.verdict-threat]="result.label === 'Attack'">
-        <div class="verdict-icon">
-          {{ result.label === 'Normal' ? '✅' : '🚨' }}
-        </div>
-
-        <div class="verdict-info">
-          <div class="verdict-badge">
-            {{ result.label === 'Normal' ? 'SAFE TRAFFIC' : 'CYBER THREAT DETECTED' }}
-          </div>
-          <h3 class="verdict-heading">
-            {{ result.label === 'Normal' ? 'Normal Network Flow' : 'Malicious Attack Pattern' }}
-          </h3>
-          <p class="verdict-explanation">
-            {{ result.label === 'Normal' 
-                ? 'This transmission matches baseline normal internet traffic. No malicious signatures or rate anomalies were detected.' 
-                : 'Warning: This transmission exhibits anomalous transfer rates or packet characteristics matching known cyber attack vectors.' 
-            }}
-          </p>
-        </div>
-
-        <!-- Visual Probability Breakdown Bar -->
-        <div class="confidence-container">
-          <div class="confidence-header">
-            <span>Model Confidence Breakdown:</span>
-          </div>
-
-          <div class="progress-bar-wrap">
-            <div 
-              class="bar-segment safe-bar" 
-              [style.width.%]="result.probabilities.Normal * 100"
-              [title]="'Normal: ' + (result.probabilities.Normal * 100 | number:'1.0-0') + '%'"
-            ></div>
-            <div 
-              class="bar-segment threat-bar" 
-              [style.width.%]="result.probabilities.Attack * 100"
-              [title]="'Attack: ' + (result.probabilities.Attack * 100 | number:'1.0-0') + '%'"
-            ></div>
-          </div>
-
-          <div class="confidence-legend">
-            <span class="legend-item safe">
-              <span class="legend-dot dot-safe"></span>
-              Normal: <strong>{{ (result.probabilities.Normal * 100) | number:'1.0-1' }}%</strong>
-            </span>
-            <span class="legend-item threat">
-              <span class="legend-dot dot-threat"></span>
-              Attack: <strong>{{ (result.probabilities.Attack * 100) | number:'1.0-1' }}%</strong>
-            </span>
-          </div>
-        </div>
-
-        <!-- Summary Diagnostics -->
-        <div class="metrics-grid">
-          <div class="metric-card">
-            <span class="metric-label">Predicted Class</span>
-            <span class="metric-val">{{ result.prediction === 0 ? 'Class 0 (Normal)' : 'Class 1 (Attack)' }}</span>
-          </div>
-          <div class="metric-card">
-            <span class="metric-label">Transport Protocol</span>
-            <span class="metric-val">{{ form.value.proto | uppercase }}</span>
-          </div>
-          <div class="metric-card">
-            <span class="metric-label">Destination Service</span>
-            <span class="metric-val">{{ form.value.service === '-' ? 'General' : (form.value.service | uppercase) }}</span>
-          </div>
-          <div class="metric-card">
-            <span class="metric-label">Connection Duration</span>
-            <span class="metric-val">{{ form.value.dur | number:'1.1-3' }}s</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Error Card -->
-      <div class="error-banner" *ngIf="errorMsg">
-        <span class="error-emoji">⚠️</span>
-        <div>
-          <strong>Server Notice:</strong>
-          <p>{{ errorMsg }}</p>
-        </div>
-      </div>
-
-      <!-- Educational Model Info -->
-      <div class="info-card">
-        <h4 class="info-title">ℹ️ How Does This Work?</h4>
-        <p class="info-text">
-          This system uses a trained <strong>Random Forest Classifier</strong> trained on 42 network flow attributes from the UNSW-NB15 benchmark.
-          It inspects packet transmission timings, packet sizes, protocol states, and frequency metrics to separate benign communications from unauthorized intrusions.
+      <section class="model" aria-labelledby="model-heading">
+        <h2 id="model-heading">How good is the model?</h2>
+        <p>A random forest of 200 trees, measured on the dataset's held-out test set.</p>
+        <dl class="stats">
+          <div><dt>Flows classified correctly</dt><dd>89.2%</dd></div>
+          <div><dt>Attacks it catches</dt><dd>98.0%</dd></div>
+          <div><dt>Normal flows it flags by mistake</dt><dd>21.7%</dd></div>
+        </dl>
+        <p class="model-note">
+          It leans towards calling things attacks: it rarely misses one, but about one normal flow in
+          five gets flagged.
         </p>
-      </div>
-    </section>
+      </section>
+    </aside>
   </div>
 </div>

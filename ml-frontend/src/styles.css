@@ -1,32 +1,81 @@
+:root {
+  /* Surfaces */
+  --paper: #eef1f0;
+  --surface: #ffffff;
+  --surface-sunk: #f6f8f7;
+  --line: #d6dcdb;
+  --line-strong: #b9c2c1;
+
+  /* Ink */
+  --ink: #16202a;
+  --ink-2: #4b5a66;
+  --ink-3: #6f7d88;
+
+  /* Traces: the two directions of a flow */
+  --out: #2c56d6;
+  --out-soft: #dfe7fc;
+  --back: #c27500;
+  --back-soft: #fbedd5;
+
+  /* Verdicts */
+  --normal: #17734a;
+  --normal-soft: #dcf1e5;
+  --attack: #c0300a;
+  --attack-soft: #fbe3da;
+
+  --focus: #2c56d6;
+
+  --font-ui: 'Schibsted Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-code: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  color-scheme: light;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
-html, body {
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
   min-height: 100vh;
-  background-color: #0b1120;
-  background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0b1120 70%);
-  color: #f1f5f9;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  font-size: 14px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+h1, h2, h3, p, ol, ul, dl, dd {
+  margin: 0;
 }
-::-webkit-scrollbar-track {
-  background: #0b1120;
+
+button, input, select {
+  font: inherit;
+  color: inherit;
 }
-::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+
+::selection {
+  background: var(--out-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

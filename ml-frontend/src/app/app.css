@@ -1,0 +1,138 @@
+:host {
+  display: block;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 36px 24px 40px;
+}
+
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px 40px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+  padding-bottom: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding-bottom: 20px;
+}
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  margin-top: 2px;
+  fill: var(--out);
+}
+
+.brand-mark .back {
+  fill: var(--back);
+}
+
+h1 {
+  font-size: 1.75rem;
+  line-height: 1.15;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+}
+
+.lede {
+  margin-top: 6px;
+  max-width: 56ch;
+  color: var(--ink-2);
+}
+
+.views {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-bottom: -1px;
+}
+
+.view-link {
+  position: relative;
+  padding: 10px 14px 16px;
+  color: var(--ink-2);
+  font-weight: 550;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
+.view-link::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--ink);
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 0.25s var(--ease-out);
+}
+
+.view-link:hover {
+  color: var(--ink);
+}
+
+.view-link[aria-current='page'] {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.view-link[aria-current='page']::after {
+  transform: scaleY(1);
+}
+
+.foot {
+  margin-top: 56px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.foot p {
+  max-width: 80ch;
+}
+
+@media (max-width: 720px) {
+  .shell {
+    padding: 24px 16px 32px;
+  }
+
+  .masthead {
+    gap: 4px;
+  }
+
+  .brand {
+    padding-bottom: 8px;
+  }
+
+  .views {
+    width: calc(100% + 32px);
+    margin: 0 -16px -1px;
+    padding: 0 6px;
+  }
+
+  .view-link {
+    padding: 10px 10px 14px;
+    font-size: 0.9375rem;
+  }
+}
