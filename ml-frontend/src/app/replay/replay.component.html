@@ -1,0 +1,168 @@
+<header class="view-head">
+  <div>
+    <h2 class="view-title">Replay test traffic</h2>
+    <p class="view-lede">
+      The model never saw these flows while training. Stream {{ flows().length | number }} of them, picked at
+      random from the 82,332-flow test set, and watch where each one lands.
+    </p>
+  </div>
+
+  <div class="controls">
+    <button type="button" class="btn btn-primary" (click)="toggle()" [disabled]="!flows().length">
+      <svg viewBox="0 0 20 20" aria-hidden="true">
+        @if (playing()) {
+          <rect x="5" y="4" width="3.5" height="12" rx="1" /><rect x="11.5" y="4" width="3.5" height="12" rx="1" />
+        } @else {
+          <path d="M6 4.5v11a1 1 0 0 0 1.5.9l9-5.5a1 1 0 0 0 0-1.8l-9-5.5A1 1 0 0 0 6 4.5Z" />
+        }
+      </svg>
+      {{ playing() ? 'Pause' : done() ? 'Replay again' : shown() ? 'Resume' : 'Play' }}
+    </button>
+    <div class="speeds" role="group" aria-label="Speed">
+      @for (s of speeds; track s.id) {
+        <button type="button" [attr.aria-pressed]="speed() === s.id" (click)="setSpeed(s.id)">{{ s.label }}</button>
+      }
+    </div>
+    <button type="button" class="btn btn-quiet" (click)="skipToEnd()" [disabled]="done() || !flows().length">Skip to end</button>
+    <button type="button" class="btn btn-quiet" (click)="restart()" [disabled]="!shown()">Restart</button>
+  </div>
+</header>
+
+@if (loadError()) {
+  <p class="load-error" role="alert">The replay data could not be loaded. Rebuild it with scripts/build_frontend_data.py.</p>
+}
+
+<div class="stage">
+  <section class="matrix" aria-labelledby="matrix-heading">
+    <h3 class="visually-hidden" id="matrix-heading">Where each flow lands</h3>
+    <div class="matrix-grid">
+      <span class="corner"></span>
+      <span class="col-head">Model says normal</span>
+      <span class="col-head">Model says attack</span>
+
+      <span class="row-head">Really normal</span>
+      <div class="cell cell-right" (click)="onCellClick($event)">
+        <div class="cell-head">
+          <span class="cell-name">Correctly passed</span>
+          <span class="cell-count">{{ cells().passed.length | number }}</span>
+        </div>
+        <div class="dots">
+          @for (f of cells().passed; track f.index) {
+            <i class="dot dot-normal" [attr.data-i]="f.index" [title]="'Normal ' + f.summary + ', attack score ' + (f.score * 100 | number: '1.0-0') + '%. Click to open.'"></i>
+          }
+        </div>
+      </div>
+      <div class="cell cell-wrong" (click)="onCellClick($event)">
+        <div class="cell-head">
+          <span class="cell-name">False alarm</span>
+          <span class="cell-count">{{ cells().alarm.length | number }}</span>
+        </div>
+        <div class="dots">
+          @for (f of cells().alarm; track f.index) {
+            <i class="dot dot-attack hollow" [attr.data-i]="f.index" [title]="'Normal ' + f.summary + ', attack score ' + (f.score * 100 | number: '1.0-0') + '%. Click to open.'"></i>
+          }
+        </div>
+      </div>
+
+      <span class="row-head">Really an attack</span>
+      <div class="cell cell-wrong" (click)="onCellClick($event)">
+        <div class="cell-head">
+          <span class="cell-name">Missed</span>
+          <span class="cell-count">{{ cells().missed.length | number }}</span>
+        </div>
+        <div class="dots">
+          @for (f of cells().missed; track f.index) {
+            <i class="dot dot-normal hollow" [attr.data-i]="f.index" [title]="f.cat + ' ' + f.summary + ', attack score ' + (f.score * 100 | number: '1.0-0') + '%. Click to open.'"></i>
+          }
+        </div>
+      </div>
+      <div class="cell cell-right" (click)="onCellClick($event)">
+        <div class="cell-head">
+          <span class="cell-name">Caught</span>
+          <span class="cell-count">{{ cells().caught.length | number }}</span>
+        </div>
+        <div class="dots">
+          @for (f of cells().caught; track f.index) {
+            <i class="dot dot-attack" [attr.data-i]="f.index" [title]="f.cat + ' ' + f.summary + ', attack score ' + (f.score * 100 | number: '1.0-0') + '%. Click to open.'"></i>
+          }
+        </div>
+      </div>
+    </div>
+
+    <ul class="key">
+      <li><i class="dot dot-normal"></i>Model said normal</li>
+      <li><i class="dot dot-attack"></i>Model said attack</li>
+      <li><i class="dot dot-ink hollow"></i>Hollow means the model was wrong</li>
+      <li class="key-hint">Click any square to open that flow in the checker.</li>
+    </ul>
+  </section>
+
+  <aside class="readout" aria-live="off">
+    <div class="big">
+      <span class="big-label">Accuracy so far</span>
+      <span class="big-value">{{ stats().n ? (stats().accuracy * 100 | number: '1.1-1') + '%' : '–' }}</span>
+      <span class="big-sub">{{ stats().n | number }} of {{ flows().length | number }} flows replayed</span>
+      <svg class="spark" viewBox="0 0 300 60" preserveAspectRatio="none" role="img"
+           [attr.aria-label]="'Running accuracy, now ' + (stats().accuracy * 100 | number: '1.1-1') + ' percent'">
+        <line class="spark-ref" x1="0" x2="300" [attr.y1]="yFor(full.accuracy)" [attr.y2]="yFor(full.accuracy)" />
+        <polyline class="spark-line" [attr.points]="sparkPoints()" />
+      </svg>
+      <span class="spark-note">Dashed line: {{ full.accuracy * 100 | number: '1.1-1' }}% on the full test set</span>
+    </div>
+
+    <dl class="rates">
+      <div>
+        <dt>Attacks caught</dt>
+        <dd>{{ stats().attacks ? (stats().caught * 100 | number: '1.1-1') + '%' : '–' }}</dd>
+        <dd class="rate-ref">full test set {{ full.caught * 100 | number: '1.1-1' }}%</dd>
+      </div>
+      <div>
+        <dt>Normal flows flagged</dt>
+        <dd>{{ stats().normals ? (stats().falseAlarms * 100 | number: '1.1-1') + '%' : '–' }}</dd>
+        <dd class="rate-ref">full test set {{ full.falseAlarms * 100 | number: '1.1-1' }}%</dd>
+      </div>
+    </dl>
+
+    @if (byType().length) {
+      <div class="types">
+        <h3>Attacks by type</h3>
+        <ul>
+          @for (t of byType(); track t.cat) {
+            <li>
+              <span class="type-name">{{ t.cat }}</span>
+              <span class="type-bar" aria-hidden="true"><span [style.--f]="t.caught / t.seen"></span></span>
+              <span class="type-count">{{ t.caught }}/{{ t.seen }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  </aside>
+</div>
+
+<section class="ticker" aria-labelledby="ticker-heading">
+  <h3 id="ticker-heading">Latest flows</h3>
+  @if (latest().length === 0) {
+    <p class="empty">Press Play to start streaming flows.</p>
+  } @else {
+    <ol>
+      @for (f of latest(); track f.index) {
+        <li>
+          <button type="button" class="tick-row" (click)="openFlow(f)"
+                  [class.wrong]="f.outcome === 'alarm' || f.outcome === 'missed'">
+            <span class="tick-n">#{{ f.index + 1 }}</span>
+            <span class="tick-what">{{ f.cat === 'Normal' ? 'Normal' : f.cat }} <span>{{ f.summary }}</span></span>
+            <span class="tick-score">
+              <span class="score-bar" aria-hidden="true"><span [style.--s]="f.score"></span></span>
+              {{ f.score * 100 | number: '1.0-0' }}%
+            </span>
+            <span class="tick-outcome">{{ outcomeLabel(f.outcome) }}</span>
+          </button>
+        </li>
+      }
+    </ol>
+  }
+  <p class="source-note">
+    Scores come from the trained random forest, worked out ahead of time so the replay also runs on GitHub Pages.
+  </p>
+</section>

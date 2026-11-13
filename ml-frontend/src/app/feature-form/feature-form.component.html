@@ -1,22 +1,10 @@
 <div class="page">
-  <header class="masthead">
-    <div class="brand">
-      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
-        <rect x="3" y="9" width="2.5" height="6" rx="1" />
-        <rect x="8" y="6" width="2.5" height="9" rx="1" />
-        <rect x="13" y="10" width="2.5" height="5" rx="1" />
-        <rect x="18" y="7" width="2.5" height="8" rx="1" />
-        <rect class="back" x="11" y="17" width="2.5" height="5" rx="1" />
-        <rect class="back" x="21" y="17" width="2.5" height="8" rx="1" />
-        <rect class="back" x="26" y="17" width="2.5" height="4" rx="1" />
-      </svg>
-      <div>
-        <h1>Flow Check</h1>
-        <p class="lede">
-          Is this network flow normal traffic or an attack? Load a captured flow, change any of its
-          42 features, and run it through a random forest trained on the UNSW-NB15 dataset.
-        </p>
-      </div>
+  <header class="view-head">
+    <div>
+      <h2 class="view-title">Check one flow</h2>
+      <p class="view-lede">
+        Pick a captured flow or change any of its 42 features, then see what the model makes of it and why.
+      </p>
     </div>
 
     <div class="mode">
@@ -28,7 +16,7 @@
         <span class="segmented-thumb" [class.right]="demoMode" aria-hidden="true"></span>
       </div>
       @if (isStaticDeployment) {
-        <p class="mode-note">GitHub Pages can't run the Python model, so this copy uses the demo.</p>
+        <p class="mode-note">GitHub Pages can't run Python, so this copy uses scores the model gave ahead of time.</p>
       }
     </div>
   </header>
@@ -91,7 +79,7 @@
       <div class="verdict" aria-live="polite" aria-atomic="true">
         @if (loading) {
           <p class="verdict-word verdict-pending">Checking<span class="dots"><i></i><i></i><i></i></span></p>
-          <p class="verdict-detail">{{ demoMode ? 'Running the demo rule' : 'Sending 42 features to the model' }}</p>
+          <p class="verdict-detail">{{ demoMode ? 'Looking up the recorded score' : 'Sending 42 features to the model' }}</p>
         } @else if (result) {
           @for (run of [runId]; track run) {
             <p class="verdict-word">{{ result.label === 'Attack' ? 'Attack' : 'Normal traffic' }}</p>
@@ -105,8 +93,11 @@
               <span>Attack {{ result.probabilities.Attack * 100 | number: '1.0-1' }}%</span>
             </div>
             <p class="verdict-detail">
-              @if (resultDemo) { Demo estimate from a rule of thumb, not the trained model. }
-              @else { Verdict from the trained random forest. }
+              @switch (resultSource) {
+                @case ('model') { Verdict from the trained random forest. }
+                @case ('recorded') { Score the trained model gave this flow, recorded ahead of time. }
+                @default { Rough estimate from a rule of thumb. Switch to the Flask API for the real model. }
+              }
             </p>
           }
         } @else if (errorMsg) {
@@ -137,19 +128,29 @@
     <section class="editor" aria-labelledby="samples-heading">
       <div class="block-head">
         <h2 id="samples-heading">Start from a captured flow</h2>
-        <p>Each one is a real record from the dataset. Choosing one checks it straight away.</p>
+        <p>Real records from the test set, including two the model gets wrong. Choosing one checks it straight away.</p>
       </div>
 
       <div class="samples">
         @for (s of samples; track s.id) {
-          <button type="button" class="sample" [attr.aria-pressed]="selectedSample.id === s.id"
-                  [class.sample-attack]="s.expected === 'Attack'" (click)="selectSample(s)">
+          <button type="button" class="sample" [attr.aria-pressed]="base.sampleId === s.id"
+                  [class.sample-attack]="s.truth !== 'Normal'"
+                  [class.sample-wrong]="(s.score > 0.5) !== (s.truth !== 'Normal')" (click)="selectSample(s)">
             <span class="sample-title">{{ s.title }}</span>
             <span class="sample-summary">{{ s.summary }}</span>
-            <span class="sample-label">Labelled {{ s.expected === 'Attack' ? 'attack' : 'normal' }}</span>
+            <span class="sample-label">
+              Really {{ s.truth === 'Normal' ? 'normal' : s.truth }}
+              @if ((s.score > 0.5) !== (s.truth !== 'Normal')) { <strong>, model is wrong</strong> }
+            </span>
           </button>
         }
       </div>
+
+      @if (!base.sampleId) {
+        <p class="from-replay">
+          Loaded from the replay: a <strong>{{ base.truth === 'Normal' ? 'normal' : base.truth }}</strong> flow from the test set.
+        </p>
+      }
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="fields-form" novalidate>
         <div class="fields-head">
@@ -195,7 +196,7 @@
                     @if (f.options) {
                       <select [id]="'f-' + f.key" [formControlName]="f.key"
                               [attr.aria-describedby]="'h-' + f.key">
-                        @for (o of f.options; track o) {
+                        @for (o of optionsFor(f); track o) {
                           <option [value]="o">{{ o === '-' ? '- (unknown)' : o }}</option>
                         }
                       </select>
@@ -205,8 +206,8 @@
                     }
                     @if (isEdited(f.key)) {
                       <button type="button" class="revert" (click)="revertField(f.key)"
-                              [attr.aria-label]="'Revert ' + f.label + ' to ' + selectedSample.data[f.key]"
-                              [title]="'Back to ' + selectedSample.data[f.key]">
+                              [attr.aria-label]="'Revert ' + f.label + ' to ' + base.data[f.key]"
+                              [title]="'Back to ' + base.data[f.key]">
                         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 8h8a4 4 0 0 1 0 8H8" /><path d="M7 5 4 8l3 3" /></svg>
                       </button>
                     }
@@ -231,7 +232,7 @@
           @if (editedKeys.length > 0) {
             <span class="edited-note">
               {{ editedKeys.length }} {{ editedKeys.length === 1 ? 'value differs' : 'values differ' }} from
-              “{{ selectedSample.title }}”
+              “{{ base.title }}”
             </span>
             <button type="button" class="btn btn-quiet" (click)="revertAll()">Revert all</button>
           }
@@ -240,6 +241,55 @@
     </section>
 
     <aside class="side">
+      <section class="why" aria-labelledby="why-heading">
+        <h2 id="why-heading">Why this verdict</h2>
+        <p class="why-intro">
+          Each row asks: what if this one value were typical of normal traffic? The bar shows how much
+          the attack chance would change.
+        </p>
+
+        @switch (explainState) {
+          @case ('loading') {
+            <div class="why-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          }
+          @case ('unavailable') {
+            <p class="empty">This edited flow has no recorded explanation. Switch to the Flask API to work one out.</p>
+          }
+          @case ('error') {
+            <p class="empty">The explanation could not be worked out. Check that the Flask API is running.</p>
+          }
+          @case ('ready') {
+            @if (explanation && explanation.features.length) {
+              <div class="why-axis" aria-hidden="true"><span>Towards normal</span><span>Towards attack</span></div>
+              <ol class="why-list">
+                @for (f of explanation.features; track f.feature; let i = $index) {
+                  <li [style.--i]="i">
+                    <div class="why-row">
+                      <span class="why-name">{{ fieldLabel(f.feature) }}</span>
+                      <span class="why-bar" aria-hidden="true">
+                        <span class="why-fill" [class.up]="f.effect > 0"
+                              [style.--w]="barWidth(f)"></span>
+                      </span>
+                    </div>
+                    <p class="why-detail">
+                      Is {{ formatValue(f.value) }}, typically {{ formatValue(f.typical) }}.
+                      Attack chance {{ explanation.attack_probability * 100 | number: '1.0-0' }}% becomes
+                      {{ f.attack_if_typical * 100 | number: '1.0-0' }}%.
+                      <button type="button" class="link" (click)="tryTypical(f)">Try {{ formatValue(f.typical) }}</button>
+                    </p>
+                  </li>
+                }
+              </ol>
+            } @else {
+              <p class="empty">Every value already matches typical normal traffic.</p>
+            }
+          }
+          @default {
+            <p class="empty">Run a check to see which values drove it.</p>
+          }
+        }
+      </section>
+
       <section class="history" aria-labelledby="history-heading">
         <h2 id="history-heading">Recent checks</h2>
         @if (history.length === 0) {
@@ -250,11 +300,11 @@
               <li>
                 <button type="button" class="history-row" (click)="restore(h)"
                         [class.row-attack]="h.label === 'Attack'"
-                        [attr.aria-label]="'Load ' + h.sampleTitle + (h.edited ? ', edited' : '') + ', ' + h.label + ', checked at ' + h.time">
+                        [attr.aria-label]="'Load ' + h.title + (h.edited ? ', edited' : '') + ', ' + h.label + ', checked at ' + h.time">
                   <span class="row-dot" aria-hidden="true"></span>
                   <span class="row-main">
-                    <span class="row-title">{{ h.sampleTitle }}@if (h.edited) {<em>, edited</em>}</span>
-                    <span class="row-sub">{{ h.time }}, {{ h.latencyMs }} ms{{ h.demo ? ', demo' : '' }}</span>
+                    <span class="row-title">{{ h.title }}@if (h.edited) {<em>, edited</em>}</span>
+                    <span class="row-sub">{{ h.time }}, {{ h.source === 'model' ? h.latencyMs + ' ms' : h.source === 'recorded' ? 'recorded score' : 'rule of thumb' }}</span>
                   </span>
                   <span class="row-verdict">
                     {{ h.label === 'Attack' ? 'Attack' : 'Normal' }}
@@ -265,20 +315,6 @@
             }
           </ol>
         }
-      </section>
-
-      <section class="model" aria-labelledby="model-heading">
-        <h2 id="model-heading">How good is the model?</h2>
-        <p>A random forest of 200 trees, measured on the dataset's held-out test set.</p>
-        <dl class="stats">
-          <div><dt>Flows classified correctly</dt><dd>89.2%</dd></div>
-          <div><dt>Attacks it catches</dt><dd>98.0%</dd></div>
-          <div><dt>Normal flows it flags by mistake</dt><dd>21.7%</dd></div>
-        </dl>
-        <p class="model-note">
-          It leans towards calling things attacks: it rarely misses one, but about one normal flow in
-          five gets flagged.
-        </p>
       </section>
     </aside>
   </div>

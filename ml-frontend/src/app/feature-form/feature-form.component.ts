@@ -156,6 +156,11 @@ export class FeatureFormComponent implements OnInit {
     return Math.max(0.01, ...(this.explanation?.features ?? []).map(f => Math.abs(f.effect)));
   }
 
+  /** Half the bar is each direction, scaled to the strongest effect in the list. */
+  barWidth(f: ExplainFeature): string {
+    return (Math.abs(f.effect) / this.maxEffect) * 50 + '%';
+  }
+
   editedCount(group: FieldGroup): number {
     const edited = this.editedKeys;
     return group.fields.filter(f => edited.includes(f.key)).length;

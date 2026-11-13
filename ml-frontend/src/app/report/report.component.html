@@ -1,0 +1,174 @@
+<header class="view-head">
+  <div>
+    <h2 class="view-title">Model report</h2>
+    <p class="view-lede">
+      How the random forest does on the 82,332 flows held back for testing, and the one setting you can tune.
+    </p>
+  </div>
+</header>
+
+@if (report(); as r) {
+  <!-- Threshold: the trade-off between missed attacks and false alarms -->
+  <section class="panel threshold" aria-labelledby="threshold-heading">
+    <div class="panel-head">
+      <h3 id="threshold-heading">How suspicious is too suspicious?</h3>
+      <p>
+        The model gives every flow an attack score from 0 to 1. Above the threshold it is flagged.
+        Move it and see what you trade: fewer false alarms means more missed attacks.
+      </p>
+    </div>
+
+    <div class="threshold-controls">
+      <label class="slider">
+        <span class="slider-label">Flag flows scoring above <strong>{{ threshold() | number: '1.2-2' }}</strong></span>
+        <input type="range" min="1" max="99" step="1" [value]="k()" (input)="setK($any($event.target).value)"
+               aria-describedby="threshold-summary">
+      </label>
+      <div class="presets" role="group" aria-label="Suggested thresholds">
+        @for (p of presets(); track p.label) {
+          <button type="button" [attr.aria-pressed]="k() === p.k" (click)="setK(p.k)" [title]="p.hint">
+            {{ p.label }} <span>{{ p.k / 100 | number: '1.2-2' }}</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="hist-wrap">
+      <svg class="hist" [attr.viewBox]="'0 0 ' + chartW + ' ' + (halfH * 2 + 4)" preserveAspectRatio="none"
+           role="img" aria-label="Attack scores of normal flows above the line and attack flows below it, log scale"
+           (mouseleave)="hover(null)">
+        <rect class="flag-zone" [attr.x]="threshold() * chartW" y="0"
+              [attr.width]="chartW - threshold() * chartW" [attr.height]="halfH * 2 + 4" />
+        @for (b of bars(); track b.k) {
+          @if (b.hNormal) {
+            <rect class="bar-normal" [class.flagged]="b.k >= k()" [attr.x]="b.x + 1" [attr.y]="halfH - b.hNormal"
+                  width="8" [attr.height]="b.hNormal" rx="2" />
+          }
+          @if (b.hAttack) {
+            <rect class="bar-attack" [class.flagged]="b.k >= k()" [attr.x]="b.x + 1" [attr.y]="halfH + 4"
+                  width="8" [attr.height]="b.hAttack" rx="2" />
+          }
+          <rect class="hit" [attr.x]="b.x" y="0" width="10" [attr.height]="halfH * 2 + 4" (mouseenter)="hover(b)" />
+        }
+        <line class="baseline" x1="0" [attr.x2]="chartW" [attr.y1]="halfH + 2" [attr.y2]="halfH + 2" />
+        <line class="cut" [attr.x1]="threshold() * chartW" [attr.x2]="threshold() * chartW" y1="0" [attr.y2]="halfH * 2 + 4" />
+      </svg>
+      <span class="hist-tag tag-top">Normal flows</span>
+      <span class="hist-tag tag-bottom">Attack flows</span>
+      @if (hovered(); as h) {
+        <div class="tooltip" [style.left.%]="(h.k + 0.5)">
+          <strong>Score {{ h.k / 100 | number: '1.2-2' }} to {{ (h.k + 1) / 100 | number: '1.2-2' }}</strong>
+          <span><i class="sw sw-normal"></i>{{ h.normal | number }} normal</span>
+          <span><i class="sw sw-attack"></i>{{ h.attack | number }} attack</span>
+        </div>
+      }
+    </div>
+    <div class="hist-axis" aria-hidden="true"><span>0, looks normal</span><span>Attack score</span><span>1, looks like an attack</span></div>
+    <p class="chart-note">Bar heights use a log scale: most flows score close to 0 or 1.</p>
+
+    @if (outcome(); as o) {
+      <div class="outcomes" id="threshold-summary" aria-live="polite">
+        <div class="outcome good">
+          <span class="o-name">Attacks caught</span>
+          <span class="o-rate">{{ o.caughtRate * 100 | number: '1.1-1' }}%</span>
+          <span class="o-count">{{ o.caught | number }} caught, {{ o.missed | number }} missed</span>
+        </div>
+        <div class="outcome bad">
+          <span class="o-name">Normal flows flagged</span>
+          <span class="o-rate">{{ o.alarmRate * 100 | number: '1.1-1' }}%</span>
+          <span class="o-count">{{ o.alarm | number }} false alarms, {{ o.passed | number }} passed</span>
+        </div>
+        <div class="outcome">
+          <span class="o-name">All flows right</span>
+          <span class="o-rate">{{ o.accuracy * 100 | number: '1.1-1' }}%</span>
+          <span class="o-count">ROC AUC {{ r.model.roc_auc }}</span>
+        </div>
+      </div>
+    }
+  </section>
+
+  <div class="pair">
+    <section class="panel" aria-labelledby="types-heading">
+      <div class="panel-head">
+        <h3 id="types-heading">Which attacks get caught</h3>
+        <p>Share of each attack type flagged at a threshold of {{ threshold() | number: '1.2-2' }}.</p>
+      </div>
+      <ul class="hbars">
+        @for (t of byType(); track t.cat) {
+          <li>
+            <span class="hb-name">{{ t.cat }} <small>{{ t.total | number }} flows</small></span>
+            <span class="hb-track"><span class="hb-fill fill-attack" [style.--f]="t.caught"></span></span>
+            <span class="hb-value">{{ t.caught * 100 | number: '1.0-1' }}%</span>
+          </li>
+        }
+      </ul>
+      <p class="chart-note">Fuzzers are the hardest: random junk traffic often looks like an odd but harmless flow.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="features-heading">
+      <div class="panel-head">
+        <h3 id="features-heading">What the forest looks at</h3>
+        <p>The ten features the 200 trees rely on most when they split.</p>
+      </div>
+      <ol class="hbars">
+        @for (f of topFeatures(); track f.feature) {
+          <li>
+            <span class="hb-name">{{ fieldLabel(f.feature) }} <code>{{ f.feature }}</code></span>
+            <span class="hb-track"><span class="hb-fill fill-ink" [style.--f]="f.width"></span></span>
+            <span class="hb-value">{{ f.importance * 100 | number: '1.1-1' }}%</span>
+          </li>
+        }
+      </ol>
+      <p class="chart-note">
+        Time-to-live leads: many attack tools in this dataset send packets with a TTL near 255, while
+        ordinary hosts start lower.
+      </p>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="xgb-heading">
+    <div class="panel-head">
+      <h3 id="xgb-heading">Naming the attack: a second model</h3>
+      <p>
+        A gradient-boosted model (XGBoost) was also trained to say which of 10 kinds of traffic a flow is.
+        It gets {{ r.xgb.accuracy * 100 | number: '1.1-1' }}% right, and its mistakes show which attacks look alike.
+      </p>
+    </div>
+
+    <div class="heat-scroll">
+      <table class="heat">
+        <caption class="visually-hidden">Rows are the real class, columns the predicted class. Each cell is the share of the row.</caption>
+        <thead>
+          <tr>
+            <th scope="col" class="heat-corner">Really ↓ / Predicted →</th>
+            @for (c of r.xgb.classes; track c) {
+              <th scope="col" class="heat-col"><span>{{ c }}</span></th>
+            }
+            <th scope="col" class="heat-num">Found</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of xgbRows(); track row.cls) {
+            <tr>
+              <th scope="row">{{ row.cls }} <small>{{ row.support | number }}</small></th>
+              @for (c of row.cells; track c.predicted) {
+                <td [class.diag]="c.predicted === row.cls" [class.dark]="c.share > 0.5" [style.--a]="c.share"
+                    [title]="row.cls + ' predicted as ' + c.predicted + ': ' + (c.n | number) + ' flows (' + (c.share * 100 | number: '1.0-1') + '%)'">
+                  @if (c.share >= 0.1) { {{ c.share * 100 | number: '1.0-0' }} }
+                </td>
+              }
+              <td class="heat-num">{{ row.recall * 100 | number: '1.0-0' }}%</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="chart-note">
+      Darker cells hold more of that row's flows; numbers are percentages, shown from 10% up. The diagonal is
+      correct. Backdoor and Analysis traffic is mostly mistaken for DoS, which is why the binary model above
+      only asks "attack or not".
+    </p>
+  </section>
+} @else {
+  <p class="loading">Loading the report…</p>
+}
